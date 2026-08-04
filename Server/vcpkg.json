@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "nhn-server",
+  "version": "0.1.0",
+  "description": "Arcade multiplayer backend: matchmaking, instance, chat and voice servers.",
+  "dependencies": [
+    {
+      "name": "gtest",
+      "platform": "windows"
+    }
+  ],
+  "builtin-baseline": "86dc619bd8d9697405ae5c944b474117ea9457ce"
+}

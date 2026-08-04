@@ -1,0 +1,17 @@
+# Build output
+/build/
+/out/
+/install/
+
+# vcpkg manifest-mode installed tree
+vcpkg_installed/
+
+# Runtime output
+/logs/
+*.dmp
+*.log
+
+# IDE
+.idea/
+.vs/
+CMakeUserPresets.json
