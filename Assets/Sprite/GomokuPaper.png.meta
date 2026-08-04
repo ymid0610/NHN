@@ -1,0 +1,1365 @@
+fileFormatVersion: 2
+guid: fcff60c225020e541832bafc89a76427
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -395309311566968448
+    second: GomokuPaper_0
+  - first:
+      213: 3805336435155816007
+    second: GomokuPaper_1
+  - first:
+      213: 1520325909246837124
+    second: GomokuPaper_2
+  - first:
+      213: -6745549241311753790
+    second: GomokuPaper_3
+  - first:
+      213: -8990133899054122704
+    second: GomokuPaper_4
+  - first:
+      213: 834070001553598069
+    second: GomokuPaper_5
+  - first:
+      213: -54954912470507005
+    second: GomokuPaper_6
+  - first:
+      213: 1919771811435350699
+    second: GomokuPaper_7
+  - first:
+      213: -5537351945401622322
+    second: GomokuPaper_8
+  - first:
+      213: 4125095150553702996
+    second: GomokuPaper_9
+  - first:
+      213: -4123156473802509460
+    second: GomokuPaper_10
+  - first:
+      213: 7795450810096299228
+    second: GomokuPaper_11
+  - first:
+      213: -4562992265065696105
+    second: GomokuPaper_12
+  - first:
+      213: -517337538562304503
+    second: GomokuPaper_13
+  - first:
+      213: 4378648636582914244
+    second: GomokuPaper_14
+  - first:
+      213: -5777341213240709241
+    second: GomokuPaper_15
+  - first:
+      213: 2826618843675292072
+    second: GomokuPaper_16
+  - first:
+      213: 3145702032648625178
+    second: GomokuPaper_17
+  - first:
+      213: 7240525173936845215
+    second: GomokuPaper_18
+  - first:
+      213: -2157642335154304837
+    second: GomokuPaper_19
+  - first:
+      213: 6134583502146649488
+    second: GomokuPaper_20
+  - first:
+      213: 805470956397803862
+    second: GomokuPaper_21
+  - first:
+      213: 3771228466918815287
+    second: GomokuPaper_22
+  - first:
+      213: 5934442111661077439
+    second: GomokuPaper_23
+  - first:
+      213: 8470799237184805822
+    second: GomokuPaper_24
+  - first:
+      213: -4881533110486587677
+    second: GomokuPaper_25
+  - first:
+      213: 3312644590823517327
+    second: GomokuPaper_26
+  - first:
+      213: 890308386846690572
+    second: GomokuPaper_27
+  - first:
+      213: 4577001819768080947
+    second: GomokuPaper_28
+  - first:
+      213: -3547283815082336782
+    second: GomokuPaper_29
+  - first:
+      213: 7947340321886909505
+    second: GomokuPaper_30
+  - first:
+      213: 6934434494108146099
+    second: GomokuPaper_31
+  - first:
+      213: 2089218238003232424
+    second: GomokuPaper_32
+  - first:
+      213: 3158307350240574019
+    second: GomokuPaper_33
+  - first:
+      213: 1036614913621239361
+    second: GomokuPaper_34
+  - first:
+      213: 4496695878370949118
+    second: GomokuPaper_35
+  - first:
+      213: -5837865220040119587
+    second: GomokuPaper_36
+  - first:
+      213: -3319280316634422369
+    second: GomokuPaper_37
+  - first:
+      213: -1306035338641767196
+    second: GomokuPaper_38
+  - first:
+      213: -2195912784207368934
+    second: GomokuPaper_39
+  - first:
+      213: 2215055336225189119
+    second: GomokuPaper_40
+  - first:
+      213: 8589366621570500100
+    second: GomokuPaper_41
+  - first:
+      213: 3904826740525054297
+    second: GomokuPaper_42
+  - first:
+      213: 7520713184682892610
+    second: GomokuPaper_43
+  - first:
+      213: 6581433796533901401
+    second: GomokuPaper_44
+  - first:
+      213: -59267844420353012
+    second: GomokuPaper_45
+  - first:
+      213: 6403008491339107366
+    second: GomokuPaper_46
+  - first:
+      213: -2475567872773716674
+    second: GomokuPaper_47
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: GomokuPaper_0
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 3680
+        width: 323
+        height: 325
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 08985ab8644938af0800000000000000
+      internalID: -395309311566968448
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_1
+      rect:
+        serializedVersion: 2
+        x: 610
+        y: 3679
+        width: 323
+        height: 326
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 74e405483554fc430800000000000000
+      internalID: 3805336435155816007
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_2
+      rect:
+        serializedVersion: 2
+        x: 1122
+        y: 3679
+        width: 323
+        height: 326
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4810b730c58491510800000000000000
+      internalID: 1520325909246837124
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_3
+      rect:
+        serializedVersion: 2
+        x: 1634
+        y: 3679
+        width: 323
+        height: 326
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c905b854bef262a0800000000000000
+      internalID: -6745549241311753790
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_4
+      rect:
+        serializedVersion: 2
+        x: 2146
+        y: 3679
+        width: 323
+        height: 326
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0397eafb9d0ac3380800000000000000
+      internalID: -8990133899054122704
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_5
+      rect:
+        serializedVersion: 2
+        x: 2656
+        y: 3672
+        width: 332
+        height: 337
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 57669605f36339b00800000000000000
+      internalID: 834070001553598069
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_6
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 3147
+        width: 374
+        height: 350
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 302688b5cc2cc3ff0800000000000000
+      internalID: -54954912470507005
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_7
+      rect:
+        serializedVersion: 2
+        x: 570
+        y: 3172
+        width: 407
+        height: 321
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: baa89668a4664aa10800000000000000
+      internalID: 1919771811435350699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_8
+      rect:
+        serializedVersion: 2
+        x: 1058
+        y: 3210
+        width: 436
+        height: 281
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ec0a40a6ebf5723b0800000000000000
+      internalID: -5537351945401622322
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_9
+      rect:
+        serializedVersion: 2
+        x: 1552
+        y: 3247
+        width: 462
+        height: 239
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 452a0790f284f3930800000000000000
+      internalID: 4125095150553702996
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_10
+      rect:
+        serializedVersion: 2
+        x: 2088
+        y: 3251
+        width: 443
+        height: 216
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c6336a1580b97c6c0800000000000000
+      internalID: -4123156473802509460
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_11
+      rect:
+        serializedVersion: 2
+        x: 2613
+        y: 3239
+        width: 428
+        height: 202
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cdc22dfa5310f2c60800000000000000
+      internalID: 7795450810096299228
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_12
+      rect:
+        serializedVersion: 2
+        x: 53
+        y: 2720
+        width: 424
+        height: 206
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 79477efe5befca0c0800000000000000
+      internalID: -4562992265065696105
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_13
+      rect:
+        serializedVersion: 2
+        x: 557
+        y: 2714
+        width: 433
+        height: 228
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 906d409ef3c02d8f0800000000000000
+      internalID: -517337538562304503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_14
+      rect:
+        serializedVersion: 2
+        x: 1078
+        y: 2696
+        width: 433
+        height: 261
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4c8e5c36cb514cc30800000000000000
+      internalID: 4378648636582914244
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_15
+      rect:
+        serializedVersion: 2
+        x: 1599
+        y: 2685
+        width: 419
+        height: 276
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 78f2096b6c2c2dfa0800000000000000
+      internalID: -5777341213240709241
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_16
+      rect:
+        serializedVersion: 2
+        x: 2135
+        y: 2691
+        width: 367
+        height: 266
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a1f0bcbcda2a3720800000000000000
+      internalID: 2826618843675292072
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_17
+      rect:
+        serializedVersion: 2
+        x: 2656
+        y: 2709
+        width: 360
+        height: 258
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1cde310557c7ab20800000000000000
+      internalID: 3145702032648625178
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_18
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 2171
+        width: 396
+        height: 277
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f9177c3a8438b7460800000000000000
+      internalID: 7240525173936845215
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_19
+      rect:
+        serializedVersion: 2
+        x: 581
+        y: 2167
+        width: 384
+        height: 265
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bb888c45ab38e02e0800000000000000
+      internalID: -2157642335154304837
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_20
+      rect:
+        serializedVersion: 2
+        x: 1103
+        y: 2156
+        width: 375
+        height: 244
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 09d3c6a513b622550800000000000000
+      internalID: 6134583502146649488
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_21
+      rect:
+        serializedVersion: 2
+        x: 1603
+        y: 2168
+        width: 390
+        height: 246
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6593cf8319b9d2b00800000000000000
+      internalID: 805470956397803862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_22
+      rect:
+        serializedVersion: 2
+        x: 2101
+        y: 2157
+        width: 403
+        height: 268
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73679815f48165430800000000000000
+      internalID: 3771228466918815287
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_23
+      rect:
+        serializedVersion: 2
+        x: 2612
+        y: 2183
+        width: 413
+        height: 231
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fb37da598af5b5250800000000000000
+      internalID: 5934442111661077439
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_24
+      rect:
+        serializedVersion: 2
+        x: 56
+        y: 1711
+        width: 420
+        height: 151
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ebbdc08a6035e8570800000000000000
+      internalID: 8470799237184805822
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_25
+      rect:
+        serializedVersion: 2
+        x: 586
+        y: 1695
+        width: 402
+        height: 198
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e6a32edf7f414cb0800000000000000
+      internalID: -4881533110486587677
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_26
+      rect:
+        serializedVersion: 2
+        x: 1094
+        y: 1655
+        width: 414
+        height: 271
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f8ca72744b0e8fd20800000000000000
+      internalID: 3312644590823517327
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_27
+      rect:
+        serializedVersion: 2
+        x: 1592
+        y: 1662
+        width: 430
+        height: 270
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c0d4c82c2c20b5c00800000000000000
+      internalID: 890308386846690572
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_28
+      rect:
+        serializedVersion: 2
+        x: 2093
+        y: 1701
+        width: 433
+        height: 246
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33ac793b7e6c48f30800000000000000
+      internalID: 4577001819768080947
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_29
+      rect:
+        serializedVersion: 2
+        x: 2603
+        y: 1711
+        width: 428
+        height: 231
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2fd568c1a2485cec0800000000000000
+      internalID: -3547283815082336782
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_30
+      rect:
+        serializedVersion: 2
+        x: 70
+        y: 1168
+        width: 410
+        height: 227
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 144353b7aef9a4e60800000000000000
+      internalID: 7947340321886909505
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_31
+      rect:
+        serializedVersion: 2
+        x: 614
+        y: 1164
+        width: 386
+        height: 226
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b91883ae6f0c3060800000000000000
+      internalID: 6934434494108146099
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_32
+      rect:
+        serializedVersion: 2
+        x: 1111
+        y: 1159
+        width: 388
+        height: 244
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ae33761be46efc10800000000000000
+      internalID: 2089218238003232424
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_33
+      rect:
+        serializedVersion: 2
+        x: 1616
+        y: 1154
+        width: 395
+        height: 251
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34a38963dcf84db20800000000000000
+      internalID: 3158307350240574019
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_34
+      rect:
+        serializedVersion: 2
+        x: 2103
+        y: 1143
+        width: 419
+        height: 238
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 146244f85cbc26e00800000000000000
+      internalID: 1036614913621239361
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_35
+      rect:
+        serializedVersion: 2
+        x: 2613
+        y: 1138
+        width: 417
+        height: 234
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef7734da319776e30800000000000000
+      internalID: 4496695878370949118
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_36
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 629
+        width: 413
+        height: 246
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ddaa6e0438cbbfea0800000000000000
+      internalID: -5837865220040119587
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_37
+      rect:
+        serializedVersion: 2
+        x: 587
+        y: 629
+        width: 394
+        height: 262
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f932f09632c8fe1d0800000000000000
+      internalID: -3319280316634422369
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_38
+      rect:
+        serializedVersion: 2
+        x: 1132
+        y: 627
+        width: 335
+        height: 277
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e4862877c700ede0800000000000000
+      internalID: -1306035338641767196
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_39
+      rect:
+        serializedVersion: 2
+        x: 1611
+        y: 613
+        width: 403
+        height: 292
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1da49b05fc8681e0800000000000000
+      internalID: -2195912784207368934
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_40
+      rect:
+        serializedVersion: 2
+        x: 2099
+        y: 640
+        width: 427
+        height: 263
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ffc2989a7157dbe10800000000000000
+      internalID: 2215055336225189119
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_41
+      rect:
+        serializedVersion: 2
+        x: 2607
+        y: 680
+        width: 425
+        height: 213
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4068e441f6f833770800000000000000
+      internalID: 8589366621570500100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_42
+      rect:
+        serializedVersion: 2
+        x: 63
+        y: 191
+        width: 386
+        height: 149
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 959317a5b3bb03630800000000000000
+      internalID: 3904826740525054297
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_43
+      rect:
+        serializedVersion: 2
+        x: 587
+        y: 191
+        width: 368
+        height: 153
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 24dde968bc0fe5860800000000000000
+      internalID: 7520713184682892610
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_44
+      rect:
+        serializedVersion: 2
+        x: 1114
+        y: 178
+        width: 340
+        height: 198
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 95857230b23f55b50800000000000000
+      internalID: 6581433796533901401
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_45
+      rect:
+        serializedVersion: 2
+        x: 1626
+        y: 168
+        width: 340
+        height: 222
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c04c8b2a5307d2ff0800000000000000
+      internalID: -59267844420353012
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_46
+      rect:
+        serializedVersion: 2
+        x: 2138
+        y: 146
+        width: 334
+        height: 263
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 62cc31c5c4e0cd850800000000000000
+      internalID: 6403008491339107366
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GomokuPaper_47
+      rect:
+        serializedVersion: 2
+        x: 2651
+        y: 131
+        width: 333
+        height: 283
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3504f5c22405add0800000000000000
+      internalID: -2475567872773716674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      GomokuPaper_0: -395309311566968448
+      GomokuPaper_1: 3805336435155816007
+      GomokuPaper_10: -4123156473802509460
+      GomokuPaper_11: 7795450810096299228
+      GomokuPaper_12: -4562992265065696105
+      GomokuPaper_13: -517337538562304503
+      GomokuPaper_14: 4378648636582914244
+      GomokuPaper_15: -5777341213240709241
+      GomokuPaper_16: 2826618843675292072
+      GomokuPaper_17: 3145702032648625178
+      GomokuPaper_18: 7240525173936845215
+      GomokuPaper_19: -2157642335154304837
+      GomokuPaper_2: 1520325909246837124
+      GomokuPaper_20: 6134583502146649488
+      GomokuPaper_21: 805470956397803862
+      GomokuPaper_22: 3771228466918815287
+      GomokuPaper_23: 5934442111661077439
+      GomokuPaper_24: 8470799237184805822
+      GomokuPaper_25: -4881533110486587677
+      GomokuPaper_26: 3312644590823517327
+      GomokuPaper_27: 890308386846690572
+      GomokuPaper_28: 4577001819768080947
+      GomokuPaper_29: -3547283815082336782
+      GomokuPaper_3: -6745549241311753790
+      GomokuPaper_30: 7947340321886909505
+      GomokuPaper_31: 6934434494108146099
+      GomokuPaper_32: 2089218238003232424
+      GomokuPaper_33: 3158307350240574019
+      GomokuPaper_34: 1036614913621239361
+      GomokuPaper_35: 4496695878370949118
+      GomokuPaper_36: -5837865220040119587
+      GomokuPaper_37: -3319280316634422369
+      GomokuPaper_38: -1306035338641767196
+      GomokuPaper_39: -2195912784207368934
+      GomokuPaper_4: -8990133899054122704
+      GomokuPaper_40: 2215055336225189119
+      GomokuPaper_41: 8589366621570500100
+      GomokuPaper_42: 3904826740525054297
+      GomokuPaper_43: 7520713184682892610
+      GomokuPaper_44: 6581433796533901401
+      GomokuPaper_45: -59267844420353012
+      GomokuPaper_46: 6403008491339107366
+      GomokuPaper_47: -2475567872773716674
+      GomokuPaper_5: 834070001553598069
+      GomokuPaper_6: -54954912470507005
+      GomokuPaper_7: 1919771811435350699
+      GomokuPaper_8: -5537351945401622322
+      GomokuPaper_9: 4125095150553702996
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

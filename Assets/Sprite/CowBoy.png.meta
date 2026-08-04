@@ -1,0 +1,1416 @@
+fileFormatVersion: 2
+guid: e3598236f21df934b815a86933219476
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -7351284641186222307
+    second: CowBoy_0
+  - first:
+      213: 4460844478925229555
+    second: CowBoy_1
+  - first:
+      213: 6723845408990149998
+    second: CowBoy_2
+  - first:
+      213: 4215130978345434315
+    second: CowBoy_3
+  - first:
+      213: 926883139630655365
+    second: CowBoy_4
+  - first:
+      213: 7244915232166868507
+    second: CowBoy_5
+  - first:
+      213: 3343640113263287816
+    second: CowBoy_6
+  - first:
+      213: -1605124977029948731
+    second: CowBoy_7
+  - first:
+      213: -6387554600116332087
+    second: CowBoy_8
+  - first:
+      213: 6253029993339369075
+    second: CowBoy_9
+  - first:
+      213: 7355184000291221410
+    second: CowBoy_10
+  - first:
+      213: -3679702869697309067
+    second: CowBoy_11
+  - first:
+      213: 7688631099335090299
+    second: CowBoy_12
+  - first:
+      213: -3838898587380686691
+    second: CowBoy_13
+  - first:
+      213: 3608986944078018274
+    second: CowBoy_14
+  - first:
+      213: -745307551431207045
+    second: CowBoy_15
+  - first:
+      213: -3622196297711715719
+    second: CowBoy_16
+  - first:
+      213: 5098311280027099859
+    second: CowBoy_17
+  - first:
+      213: -4800415805732847163
+    second: CowBoy_18
+  - first:
+      213: -7521238351752990883
+    second: CowBoy_19
+  - first:
+      213: -6059339377263930176
+    second: CowBoy_20
+  - first:
+      213: 6565498397924774995
+    second: CowBoy_21
+  - first:
+      213: 2209198205612166193
+    second: CowBoy_22
+  - first:
+      213: -507148642225281649
+    second: CowBoy_23
+  - first:
+      213: -60586988936165396
+    second: CowBoy_24
+  - first:
+      213: 4073175285578532929
+    second: CowBoy_25
+  - first:
+      213: -8086039564322061072
+    second: CowBoy_26
+  - first:
+      213: -7663673268284553782
+    second: CowBoy_27
+  - first:
+      213: 5625242494880552821
+    second: CowBoy_28
+  - first:
+      213: -5129073853407691458
+    second: CowBoy_29
+  - first:
+      213: 4586832547637122062
+    second: CowBoy_30
+  - first:
+      213: -3523143483213664157
+    second: CowBoy_31
+  - first:
+      213: -1906950189390607484
+    second: CowBoy_32
+  - first:
+      213: 6375706880219126903
+    second: CowBoy_33
+  - first:
+      213: -1824132744829523492
+    second: CowBoy_34
+  - first:
+      213: -7990750997466976008
+    second: CowBoy_35
+  - first:
+      213: -6717916839963869526
+    second: CowBoy_36
+  - first:
+      213: 740897547295732859
+    second: CowBoy_37
+  - first:
+      213: 1194910290261746907
+    second: CowBoy_38
+  - first:
+      213: 553586176575810409
+    second: CowBoy_39
+  - first:
+      213: 8216419723019546386
+    second: CowBoy_40
+  - first:
+      213: -8374131711521987890
+    second: CowBoy_41
+  - first:
+      213: -8229586266701140698
+    second: CowBoy_42
+  - first:
+      213: 6642327615242729679
+    second: CowBoy_43
+  - first:
+      213: 1132357538293874873
+    second: CowBoy_44
+  - first:
+      213: 8659673345847564342
+    second: CowBoy_45
+  - first:
+      213: -1025833690969202220
+    second: CowBoy_46
+  - first:
+      213: -1550412501048321566
+    second: CowBoy_47
+  - first:
+      213: -4534636186981987969
+    second: CowBoy_48
+  - first:
+      213: 5554878229730719442
+    second: CowBoy_49
+  - first:
+      213: 8691179541234557686
+    second: CowBoy_50
+  - first:
+      213: 3057411392374185099
+    second: CowBoy_51
+  - first:
+      213: -8152184027335694221
+    second: CowBoy_52
+  - first:
+      213: -4810709805331246563
+    second: CowBoy_53
+  - first:
+      213: -5231991442248221706
+    second: CowBoy_54
+  - first:
+      213: 5831556230266663207
+    second: CowBoy_55
+  - first:
+      213: 651753788305441836
+    second: CowBoy_56
+  - first:
+      213: -4119053316097626502
+    second: CowBoy_57
+  - first:
+      213: -6852459443762461984
+    second: CowBoy_58
+  - first:
+      213: -3671321066277689922
+    second: CowBoy_59
+  - first:
+      213: -7212210083145449994
+    second: CowBoy_60
+  - first:
+      213: 3617699553198743330
+    second: CowBoy_61
+  - first:
+      213: 2221974247980604939
+    second: CowBoy_62
+  - first:
+      213: 1495162687101192098
+    second: CowBoy_63
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: CowBoy_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 9160
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d1f6f4f419dfaf990800000000000000
+      internalID: -7351284641186222307
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_1
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 9160
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3fdc9944b6a18ed30800000000000000
+      internalID: 4460844478925229555
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_2
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 9160
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6dbf7766c5ef4d50800000000000000
+      internalID: 6723845408990149998
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_3
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 9160
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bcc3606ca472f7a30800000000000000
+      internalID: 4215130978345434315
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_4
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 9160
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 587ebfdfd43fcdc00800000000000000
+      internalID: 926883139630655365
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_5
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 9160
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b167f19b40c1b8460800000000000000
+      internalID: 7244915232166868507
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_6
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 7880
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 80e1ec7b7fef66e20800000000000000
+      internalID: 3343640113263287816
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_7
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 7880
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5cad504765379b9e0800000000000000
+      internalID: -1605124977029948731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_8
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 7880
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9c957a41fe8da57a0800000000000000
+      internalID: -6387554600116332087
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_9
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 7880
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3763bd226a937c650800000000000000
+      internalID: 6253029993339369075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_10
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 7880
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2afaefaf0ecd21660800000000000000
+      internalID: 7355184000291221410
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_11
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 7880
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 576d4b46cb11fecc0800000000000000
+      internalID: -3679702869697309067
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_12
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 6600
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b70a3ecaf3183ba60800000000000000
+      internalID: 7688631099335090299
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_13
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 6600
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d90ec6af21e79bac0800000000000000
+      internalID: -3838898587380686691
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_14
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 6600
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e6fac02182b51230800000000000000
+      internalID: 3608986944078018274
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_15
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 6600
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b77d6841bb228a5f0800000000000000
+      internalID: -745307551431207045
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_16
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 6600
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 97a782098af5bbdc0800000000000000
+      internalID: -3622196297711715719
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_17
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 6600
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3d2e160e817d0c640800000000000000
+      internalID: 5098311280027099859
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_18
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 5320
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5c18f15224f716db0800000000000000
+      internalID: -4800415805732847163
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_19
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 5320
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5fe7bc71913f9790800000000000000
+      internalID: -7521238351752990883
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_20
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 5320
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c495aca0f6e8eba0800000000000000
+      internalID: -6059339377263930176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_21
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 5320
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 354d3b5e1065d1b50800000000000000
+      internalID: 6565498397924774995
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_22
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 5320
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 13c81fb2016a8ae10800000000000000
+      internalID: 2209198205612166193
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_23
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 5320
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f8527d33ffe36f8f0800000000000000
+      internalID: -507148642225281649
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_24
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 4040
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ce7037e5470c82ff0800000000000000
+      internalID: -60586988936165396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_25
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 4040
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1480fc47753d68830800000000000000
+      internalID: 4073175285578532929
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_26
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 4040
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0f444d0abdd98cf80800000000000000
+      internalID: -8086039564322061072
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_27
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 4040
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac50e3134c925a590800000000000000
+      internalID: -7663673268284553782
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_28
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 4040
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 57799cace30e01e40800000000000000
+      internalID: 5625242494880552821
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_29
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 4040
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3df3ec518ed1d8b0800000000000000
+      internalID: -5129073853407691458
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_30
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 2760
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e045c1666e3b7af30800000000000000
+      internalID: 4586832547637122062
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_31
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 2760
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 360315e1ba74b1fc0800000000000000
+      internalID: -3523143483213664157
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_32
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 2760
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 48b420df7e62985e0800000000000000
+      internalID: -1906950189390607484
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_33
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 2760
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77c997ba0af0b7850800000000000000
+      internalID: 6375706880219126903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_34
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 2760
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd92749eee06fa6e0800000000000000
+      internalID: -1824132744829523492
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_35
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 2760
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f0f16bfd462b1190800000000000000
+      internalID: -7990750997466976008
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_36
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1480
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aaeb6532a3a25c2a0800000000000000
+      internalID: -6717916839963869526
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_37
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 1480
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b743581d462384a00800000000000000
+      internalID: 740897547295732859
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_38
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 1480
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd4a28df39c259010800000000000000
+      internalID: 1194910290261746907
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_39
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 1480
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 96b2e5fc1bbbea700800000000000000
+      internalID: 553586176575810409
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_40
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 1480
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 21fe714a436960270800000000000000
+      internalID: 8216419723019546386
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_41
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 1480
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ec2e560939b19cb80800000000000000
+      internalID: -8374131711521987890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_42
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 200
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 34054c59b7ae9fa40b98c3ad373d58e6
+      internalID: -8229586266701140698
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_43
+      rect:
+        serializedVersion: 2
+        x: 720
+        y: 200
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 08f76139c0d2a734c9ac2d36597d345d
+      internalID: 6642327615242729679
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_44
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 200
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6b641acd85a05a48ad712034a215590
+      internalID: 1132357538293874873
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_45
+      rect:
+        serializedVersion: 2
+        x: 2160
+        y: 200
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c3f2d5310e11534bb1b70660c01ecab
+      internalID: 8659673345847564342
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_46
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 200
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 22e6005fdf244f940acdb0b64b49b6eb
+      internalID: -1025833690969202220
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CowBoy_47
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 200
+        width: 720
+        height: 1080
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9c7d53257b22fa64abe60b1ac18bafe1
+      internalID: -1550412501048321566
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: aa1c4f34146d6ac44858478947dac7ff
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":720.0,"y":1080.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":200.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":720.0,"y":1280.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":1,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      CowBoy_0: -7351284641186222307
+      CowBoy_1: 4460844478925229555
+      CowBoy_10: 7355184000291221410
+      CowBoy_11: -3679702869697309067
+      CowBoy_12: 7688631099335090299
+      CowBoy_13: -3838898587380686691
+      CowBoy_14: 3608986944078018274
+      CowBoy_15: -745307551431207045
+      CowBoy_16: -3622196297711715719
+      CowBoy_17: 5098311280027099859
+      CowBoy_18: -4800415805732847163
+      CowBoy_19: -7521238351752990883
+      CowBoy_2: 6723845408990149998
+      CowBoy_20: -6059339377263930176
+      CowBoy_21: 6565498397924774995
+      CowBoy_22: 2209198205612166193
+      CowBoy_23: -507148642225281649
+      CowBoy_24: -60586988936165396
+      CowBoy_25: 4073175285578532929
+      CowBoy_26: -8086039564322061072
+      CowBoy_27: -7663673268284553782
+      CowBoy_28: 5625242494880552821
+      CowBoy_29: -5129073853407691458
+      CowBoy_3: 4215130978345434315
+      CowBoy_30: 4586832547637122062
+      CowBoy_31: -3523143483213664157
+      CowBoy_32: -1906950189390607484
+      CowBoy_33: 6375706880219126903
+      CowBoy_34: -1824132744829523492
+      CowBoy_35: -7990750997466976008
+      CowBoy_36: -6717916839963869526
+      CowBoy_37: 740897547295732859
+      CowBoy_38: 1194910290261746907
+      CowBoy_39: 553586176575810409
+      CowBoy_4: 926883139630655365
+      CowBoy_40: 8216419723019546386
+      CowBoy_41: -8374131711521987890
+      CowBoy_42: -8229586266701140698
+      CowBoy_43: 6642327615242729679
+      CowBoy_44: 1132357538293874873
+      CowBoy_45: 8659673345847564342
+      CowBoy_46: -1025833690969202220
+      CowBoy_47: -1550412501048321566
+      CowBoy_48: -434031527
+      CowBoy_5: 7244915232166868507
+      CowBoy_6: 3343640113263287816
+      CowBoy_7: -1605124977029948731
+      CowBoy_8: -6387554600116332087
+      CowBoy_9: 6253029993339369075
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
