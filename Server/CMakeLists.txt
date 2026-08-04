@@ -81,3 +81,4 @@ enable_testing()
 
 add_subdirectory(ServerCore)
 add_subdirectory(Protocol)
+add_subdirectory(Common)
