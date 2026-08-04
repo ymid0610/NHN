@@ -1,0 +1,20 @@
+# Host side of the kick scenario. Pair with smoke_kick_joiner.txt.
+connect
+expect hello 5000
+room create duo kickroom
+expect room 5000
+expect members 2 20000
+
+echo --- start must be refused: the joiner never readied ---
+room start
+sleep 500
+
+echo --- kick the joiner ---
+room kick nick:kicked
+expect members 1 5000
+room info
+
+echo --- hold the room open so the rejoin attempt has something to hit ---
+sleep 6000
+stat
+quit

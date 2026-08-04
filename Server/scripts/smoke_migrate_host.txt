@@ -1,0 +1,11 @@
+# Original host: creates the room, then leaves so the other player inherits it.
+connect
+expect hello 5000
+room create quad migrateroom
+expect room 5000
+expect members 2 20000
+echo --- leaving; the remaining player should become host ---
+room leave
+expect noroom 5000
+sleep 3000
+quit

@@ -1,0 +1,12 @@
+# Second player: joins, then inherits the room when the host leaves.
+connect
+expect hello 5000
+sleep 1000
+room joinname migrateroom
+expect room 10000
+echo --- waiting for the host to leave ---
+sleep 4000
+echo --- should be host now ---
+room info
+stat
+quit
