@@ -42,10 +42,6 @@ Starts the four servers and opens two interactive client windows. This is the
 everyday driver — `-Clients 4` for a full quad room, `-NoServers` to attach to a
 stack that is already up, `-Stop` to shut everything down.
 
-Clients open in real console windows with no output redirection, because
-redirecting would break the prompt *and* silently disable the wait-for-developer
-step on a crash, which only happens when stdin is a console.
-
 To start only the servers:
 
 ```bash
@@ -58,6 +54,30 @@ own endpoints, so nothing needs to be configured with anyone else's address.
 ```bash
 ./scripts/run_stack.ps1 -Stop
 ```
+
+### Why every process gets its own console
+
+Nothing here redirects a long-lived process's output, and that is deliberate.
+
+`Start-Process` can only redirect by going through `CreateProcess` *without*
+`CREATE_NEW_CONSOLE`, so the child inherits the launching console and joins its
+process group — `-WindowStyle Hidden` is quietly ignored on that path. When that
+console goes away, which is exactly what happens if you double-click a `.ps1` or
+use "Run with PowerShell", Windows sends `CTRL_CLOSE_EVENT` to everything
+attached and the servers shut down as instructed. They appear to die instantly
+for no reason.
+
+Own console means they survive the launcher. Nothing is lost: each server
+already writes `logs/<Name>_<timestamp>.log` itself.
+
+For clients the same choice matters twice over — redirection breaks the prompt,
+and it silently disables the wait-for-developer step on a crash, which only
+triggers when stdin is a console.
+
+`run_stack.ps1 -Hidden` restores capture-to-file for automation, where the
+caller stays alive for the duration. That mode passes `--no-wait`; the default
+does not, so a fatal error stops in that server's own window with the reason and
+stack on screen.
 
 ### Ports
 

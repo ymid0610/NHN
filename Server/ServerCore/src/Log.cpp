@@ -1,5 +1,7 @@
 #include "core/Log.h"
 
+#include <share.h>
+
 #include <chrono>
 #include <cstdio>
 #include <filesystem>
@@ -101,8 +103,12 @@ void Log::Init(std::string_view name, std::string_view directory, LogLevel level
                     parts.tm_year + 1900, parts.tm_mon + 1, parts.tm_mday, parts.tm_hour,
                     parts.tm_min, parts.tm_sec);
 
-    if (::fopen_s(&state.file, path.c_str(), "wb") != 0) {
-        state.file = nullptr;
+    // _fsopen with _SH_DENYNO rather than fopen: the log of a running server has
+    // to be readable while it runs. Without permissive sharing, tailing it or
+    // grepping it from a script fails with a sharing violation for as long as
+    // the process is up, which is precisely when you want to look.
+    state.file = ::_fsopen(path.c_str(), "wb", _SH_DENYNO);
+    if (state.file == nullptr) {
         std::fprintf(stderr, "[log] cannot open '%s'\n", path.c_str());
     }
 }
