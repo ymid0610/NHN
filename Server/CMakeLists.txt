@@ -78,3 +78,5 @@ target_compile_options(nhn_compile_options INTERFACE $<$<NOT:$<CONFIG:Debug>>:/Z
 target_link_options(nhn_compile_options INTERFACE $<$<NOT:$<CONFIG:Debug>>:/DEBUG /OPT:REF /OPT:ICF>)
 
 enable_testing()
+
+add_subdirectory(ServerCore)
