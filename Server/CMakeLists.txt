@@ -80,3 +80,4 @@ target_link_options(nhn_compile_options INTERFACE $<$<NOT:$<CONFIG:Debug>>:/DEBU
 enable_testing()
 
 add_subdirectory(ServerCore)
+add_subdirectory(Protocol)
