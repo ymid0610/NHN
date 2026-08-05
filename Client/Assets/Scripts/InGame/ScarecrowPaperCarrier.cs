@@ -24,11 +24,14 @@ namespace NHN.InGame
         public Vector3 paperSocketLocalPosition = new Vector3(0f, 0.8f, -0.05f);
         public Vector3 paperAttachedScale = Vector3.one;
         public Sprite scarecrowSprite;
+        public Sprite knockedDownSprite;
         public float spriteWorldHeight = 3.5f;
         public bool buildPlaceholderVisual = true;
 
         private static Sprite solidSprite;
         private Transform visualRoot;
+        private Transform spriteTransform;
+        private SpriteRenderer spriteRenderer;
         private Vector3 moveTarget;
         private Vector3 fallStart;
         private float stateTimer;
@@ -71,6 +74,8 @@ namespace NHN.InGame
             {
                 visualRoot.localRotation = Quaternion.identity;
             }
+
+            ApplyGeneratedSprite(scarecrowSprite);
 
             if (boardTransform != null)
             {
@@ -148,7 +153,14 @@ namespace NHN.InGame
 
             if (visualRoot != null)
             {
-                visualRoot.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(0f, 0f, -78f), Mathf.SmoothStep(0f, 1f, t));
+                if (knockedDownSprite == null)
+                {
+                    visualRoot.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(0f, 0f, -78f), Mathf.SmoothStep(0f, 1f, t));
+                }
+                else
+                {
+                    visualRoot.localRotation = Quaternion.identity;
+                }
             }
 
             if (boardTransform != null)
@@ -181,6 +193,7 @@ namespace NHN.InGame
         {
             state = CarrierState.KnockedDown;
             stateTimer = 0f;
+            ApplyGeneratedSprite(knockedDownSprite != null ? knockedDownSprite : scarecrowSprite);
             ConfigureBoardMotion(false);
         }
 
@@ -256,15 +269,13 @@ namespace NHN.InGame
             if (scarecrowSprite != null)
             {
                 GameObject spriteObject = new GameObject("Scarecrow Sprite");
-                Transform spriteTransform = spriteObject.transform;
+                spriteTransform = spriteObject.transform;
                 spriteTransform.SetParent(visualRoot, false);
 
-                SpriteRenderer renderer = spriteObject.AddComponent<SpriteRenderer>();
-                renderer.sprite = scarecrowSprite;
-                renderer.sortingOrder = 8;
+                spriteRenderer = spriteObject.AddComponent<SpriteRenderer>();
+                spriteRenderer.sortingOrder = 8;
 
-                float sourceHeight = Mathf.Max(scarecrowSprite.bounds.size.y, 0.01f);
-                spriteTransform.localScale = Vector3.one * (spriteWorldHeight / sourceHeight);
+                ApplyGeneratedSprite(scarecrowSprite);
                 return;
             }
 
@@ -275,6 +286,22 @@ namespace NHN.InGame
             CreatePart("Head", new Vector3(0f, 0.68f, -0.03f), new Vector3(0.48f, 0.48f, 1f), new Color(0.86f, 0.62f, 0.27f, 1f), 8);
             CreatePart("HatBrim", new Vector3(0f, 0.98f, -0.04f), new Vector3(0.75f, 0.13f, 1f), new Color(0.31f, 0.16f, 0.07f, 1f), 9);
             CreatePart("HatTop", new Vector3(0f, 1.11f, -0.05f), new Vector3(0.42f, 0.28f, 1f), new Color(0.36f, 0.18f, 0.08f, 1f), 10);
+        }
+
+        private void ApplyGeneratedSprite(Sprite sprite)
+        {
+            if (spriteRenderer == null || spriteTransform == null || sprite == null)
+            {
+                return;
+            }
+
+            spriteRenderer.sprite = sprite;
+            spriteTransform.localRotation = Quaternion.identity;
+            spriteTransform.localPosition = Vector3.zero;
+
+            Vector2 size = sprite.bounds.size;
+            float sourceSize = Mathf.Max(size.x, size.y, 0.01f);
+            spriteTransform.localScale = Vector3.one * (spriteWorldHeight / sourceSize);
         }
 
         private void CreatePart(string partName, Vector3 localPosition, Vector3 localScale, Color color, int sortingOrder)

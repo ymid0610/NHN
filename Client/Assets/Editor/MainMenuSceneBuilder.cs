@@ -20,8 +20,9 @@ public static class MainMenuSceneBuilder
     private const string PaperPath = "Assets/Sprite/GomokuPaper.png";
     private const string CowboyPath = "Assets/Sprite/CowBoy.png";
     private const string CylinderPath = "Assets/Sprite/Silinder_front_south.png";
-    private const string ScarecrowPath = "Assets/Sprite/Scarecrow.png";
+    private const string ScarecrowPath = "Assets/Sprite/Generated/ScarecrowCarrierGenerated.png";
     private const string UiPath = "Assets/Resources/UI/";
+    private const string GeneratedButtonPath = "Assets/Resources/UI/GeneratedButtons/";
 
     [MenuItem("NHN/Prototype/Create Main Menu Scene")]
     public static void CreateScene()
@@ -39,17 +40,29 @@ public static class MainMenuSceneBuilder
         controller.cylinderSprite = LoadFirstSprite(CylinderPath);
         controller.scarecrowSprite = LoadFirstSprite(ScarecrowPath);
         controller.menuBackdropSprite = LoadFirstSprite(UiPath + "WesternMenuBackdrop.png");
+        controller.titleBackdropSprite = LoadFirstSprite(UiPath + "WesternMainMenuBackdropNoButtonsGenerated.png");
+        controller.lobbyBackdropSprite = LoadFirstSprite(UiPath + "WesternLobbyBackgroundGenerated.png");
         controller.panelSprite = LoadFirstSprite(UiPath + "WesternPanel.png");
         controller.darkPanelSprite = LoadFirstSprite(UiPath + "WesternPanelDark.png");
         controller.headerSprite = LoadFirstSprite(UiPath + "WesternHeader.png");
         controller.titlePlaqueSprite = LoadFirstSprite(UiPath + "WesternTitlePlaque.png");
         controller.dividerSprite = LoadFirstSprite(UiPath + "WesternDivider.png");
-        controller.buttonGoldSprite = LoadFirstSprite(UiPath + "WesternButtonGold.png");
-        controller.buttonDarkSprite = LoadFirstSprite(UiPath + "WesternButtonDark.png");
-        controller.buttonGreenSprite = LoadFirstSprite(UiPath + "WesternButtonGreen.png");
-        controller.buttonRedSprite = LoadFirstSprite(UiPath + "WesternButtonRed.png");
-        controller.inputSprite = LoadFirstSprite(UiPath + "WesternInput.png");
-        controller.checkboxSprite = LoadFirstSprite(UiPath + "WesternCheckbox.png");
+        controller.buttonGoldSprite = LoadPreferredSprite(GeneratedButtonPath + "WesternButtonGoldGenerated.png", UiPath + "WesternButtonGold.png");
+        controller.buttonGoldHoverSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonGoldHoverGenerated.png");
+        controller.buttonGoldPressedSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonGoldPressedGenerated.png");
+        controller.buttonDarkSprite = LoadPreferredSprite(GeneratedButtonPath + "WesternButtonDarkGenerated.png", UiPath + "WesternButtonDark.png");
+        controller.buttonDarkHoverSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonDarkHoverGenerated.png");
+        controller.buttonDarkPressedSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonDarkPressedGenerated.png");
+        controller.buttonGreenSprite = LoadPreferredSprite(GeneratedButtonPath + "WesternButtonGreenGenerated.png", UiPath + "WesternButtonGreen.png");
+        controller.buttonGreenHoverSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonGreenHoverGenerated.png");
+        controller.buttonGreenPressedSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonGreenPressedGenerated.png");
+        controller.buttonRedSprite = LoadPreferredSprite(GeneratedButtonPath + "WesternButtonRedGenerated.png", UiPath + "WesternButtonRed.png");
+        controller.buttonRedHoverSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonRedHoverGenerated.png");
+        controller.buttonRedPressedSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonRedPressedGenerated.png");
+        controller.buttonDisabledSprite = LoadFirstSprite(GeneratedButtonPath + "WesternButtonDisabledGenerated.png");
+        controller.inputSprite = LoadPreferredSprite(GeneratedButtonPath + "WesternInputGenerated.png", UiPath + "WesternInput.png");
+        controller.checkboxSprite = LoadPreferredSprite(GeneratedButtonPath + "WesternCheckboxGenerated.png", UiPath + "WesternCheckbox.png");
+        controller.checkboxCheckSprite = LoadFirstSprite(GeneratedButtonPath + "WesternCheckboxCheckGenerated.png");
         controller.sliderTrackSprite = LoadFirstSprite(UiPath + "WesternSliderTrack.png");
         controller.sliderFillSprite = LoadFirstSprite(UiPath + "WesternSliderFill.png");
         controller.sliderHandleSprite = LoadFirstSprite(UiPath + "WesternSliderHandle.png");
@@ -132,6 +145,11 @@ public static class MainMenuSceneBuilder
     private static Sprite LoadFirstSprite(string assetPath)
     {
         return LoadSprites(assetPath).FirstOrDefault();
+    }
+
+    private static Sprite LoadPreferredSprite(string preferredAssetPath, string fallbackAssetPath)
+    {
+        return LoadFirstSprite(preferredAssetPath) ?? LoadFirstSprite(fallbackAssetPath);
     }
 
     private static Sprite[] LoadSprites(string assetPath)
