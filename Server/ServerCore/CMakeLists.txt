@@ -14,6 +14,7 @@ add_library(ServerCore STATIC
     src/ThreadManager.cpp
     src/Types.cpp
     src/UdpSocket.cpp
+    src/WebSocket.cpp
 )
 
 target_include_directories(ServerCore PUBLIC include)

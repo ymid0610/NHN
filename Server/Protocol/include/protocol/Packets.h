@@ -821,11 +821,13 @@ struct P_ServerHello {
     /// the address this control link came from.
     std::string publicHost;
     uint16 publicPort = 0;
+    /// WebSocket port for browser clients. Zero when this server has none.
+    uint16 publicWebPort = 0;
     int32 capacity = 0;
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & serverType & serverId & publicHost & publicPort & capacity;
+        ar & serverType & serverId & publicHost & publicPort & publicWebPort & capacity;
     }
 };
 
@@ -943,10 +945,11 @@ struct P_InstanceCreateAck {
     InstanceId instanceId = kInvalidInstanceId;
     std::string host;
     uint16 port = 0;
+    uint16 webPort = 0;
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & result & instanceId & host & port;
+        ar & result & instanceId & host & port & webPort;
     }
 };
 

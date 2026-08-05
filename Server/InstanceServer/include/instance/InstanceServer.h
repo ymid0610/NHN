@@ -74,6 +74,9 @@ class InstanceServer {
 public:
     struct Settings {
         uint16 clientPort = 7850;
+        /// WebSocket port, reported in the create-ack so browsers are handed a
+        /// port they can actually reach.
+        uint16 webPort = 7860;
         /// How long players have to arrive before the match is abandoned. Kept
         /// below the match server's handoff timeout so this side reports the
         /// failure first, with a specific reason.

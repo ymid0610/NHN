@@ -56,7 +56,10 @@ public:
     void EnqueueSetConfig(SessionId requesterId, proto::MatchConfig config);
 
     /// Handoff results, delivered from the match server's peer handlers.
+    /// @param webPort browser-facing port; each member is told whichever of the
+    ///                two its own connection can actually reach.
     void EnqueueHandoffReady(InstanceId instanceId, const std::string& host, uint16 port,
+                             uint16 webPort,
                              const std::vector<std::pair<SessionId, std::string>>& tickets);
     void EnqueueHandoffFailed(proto::ResultCode reason);
     /// The instance reported every player connected; the match is live.

@@ -34,8 +34,15 @@ int main(int argc, char** argv) {
         NetAddress::Any(settings.clientPort),
         []() -> SessionRef { return std::make_shared<ChatSession>(); }, 4096);
 
+    const uint16 webPort = config.GetPort("web-port", 7810);
+    ServerServiceRef webService = std::make_shared<ServerService>(
+        NetAddress::Any(webPort),
+        []() -> SessionRef { return std::make_shared<ChatSession>(); }, 4096);
+    webService->SetWebSocket(true);
+
     NHN_CHECK(clientService->Start(), "cannot listen for chat clients on port {}",
               settings.clientPort);
+    NHN_CHECK(webService->Start(), "cannot listen for browsers on port {}", webPort);
 
     PeerLink::Options linkOptions;
     linkOptions.matchHost = config.GetString("match-host", "127.0.0.1");
@@ -46,6 +53,7 @@ int main(int argc, char** argv) {
     // control link happens to originate from.
     linkOptions.publicHost = config.GetString("public-host", "127.0.0.1");
     linkOptions.publicPort = settings.clientPort;
+    linkOptions.publicWebPort = webPort;
     linkOptions.capacity = config.GetInt("capacity", 0);
 
     PeerLinkRef peerLink = PeerLink::Create(linkOptions, GChatServer->GetPeerDispatcher());
@@ -54,11 +62,12 @@ int main(int argc, char** argv) {
     JobQueueRef maintenance = std::make_shared<JobQueue>();
     GChatServer->StartMaintenanceTimer(maintenance);
 
-    LOG_INFO("chat server ready — clients on {}", settings.clientPort);
+    LOG_INFO("chat server ready — clients on {}, browsers on {}", settings.clientPort, webPort);
 
     ServerApp::WaitForShutdown();
 
     peerLink->Stop();
+    webService->CloseService();
     clientService->CloseService();
 
     ServerApp::Shutdown();

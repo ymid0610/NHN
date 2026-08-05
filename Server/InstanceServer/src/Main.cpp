@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
 
     InstanceServer::Settings settings;
     settings.clientPort = config.GetPort("client-port", 7850);
+    settings.webPort = config.GetPort("web-port", 7860);
     settings.joinTimeoutMs = static_cast<uint32>(config.GetInt("join-timeout-ms", 12000));
     // 20 ms, not 100. The rewind window is quantised to the tick, and at 100 ms
     // a fast-moving sheet crosses several cells between samples, which makes
@@ -34,8 +35,14 @@ int main(int argc, char** argv) {
         NetAddress::Any(settings.clientPort),
         []() -> SessionRef { return std::make_shared<InstanceSession>(); }, 1024);
 
+    ServerServiceRef webService = std::make_shared<ServerService>(
+        NetAddress::Any(settings.webPort),
+        []() -> SessionRef { return std::make_shared<InstanceSession>(); }, 1024);
+    webService->SetWebSocket(true);
+
     NHN_CHECK(clientService->Start(), "cannot listen for instance clients on port {}",
               settings.clientPort);
+    NHN_CHECK(webService->Start(), "cannot listen for browsers on port {}", settings.webPort);
 
     PeerLink::Options linkOptions;
     linkOptions.matchHost = config.GetString("match-host", "127.0.0.1");
@@ -52,11 +59,13 @@ int main(int argc, char** argv) {
     JobQueueRef maintenance = std::make_shared<JobQueue>();
     GInstanceServer->StartMaintenanceTimer(maintenance);
 
-    LOG_INFO("instance server ready — clients on {}", settings.clientPort);
+    LOG_INFO("instance server ready — clients on {}, browsers on {}", settings.clientPort,
+             settings.webPort);
 
     ServerApp::WaitForShutdown();
 
     GPeerLink->Stop();
+    webService->CloseService();
     clientService->CloseService();
 
     ServerApp::Shutdown();

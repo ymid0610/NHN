@@ -84,10 +84,22 @@ stack on screen.
 | Port | Server | Purpose |
 |---|---|---|
 | 7777 | Match | clients |
+| 7787 | Match | clients, **WebSocket** |
 | 7900 | Match | control plane (peer servers only) |
 | 7800 | Chat | clients |
+| 7810 | Chat | clients, **WebSocket** |
 | 7870 | Voice | clients, **UDP** |
 | 7850 | Instance | clients |
+| 7860 | Instance | clients, **WebSocket** |
+
+Each client-facing server listens twice. A browser cannot open a raw socket, so
+the same session classes are offered a second time behind a WebSocket
+handshake — the layer sits below the packet framer, so no handler differs and a
+browser and a native client can share a match. See `Client/web/README.md`.
+
+Voice has no WebSocket equivalent: it is UDP, which a browser cannot open at
+all. The match server reports no voice endpoint to a browser rather than
+handing out one it could never reach.
 
 Client and control ports are separate so a misconfigured client can never reach
 control-plane packets, and the two can be firewalled apart.
@@ -347,7 +359,10 @@ special case — it exercises the real lag-compensation path.
   job. The test client sends synthetic frames at the real rate and counts what
   comes back, which tests routing — the thing that can actually break server
   side.
-- **Unity client.** `Client/` is untouched.
+- **Unity client.** `Client/Assets` is untouched. There is a working browser
+  client under `Client/web` — worth keeping even once Unity exists, since a
+  second independent implementation of the wire format is what catches protocol
+  ambiguities.
 
 ## Known limits
 

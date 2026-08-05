@@ -55,16 +55,27 @@ int main(int argc, char** argv) {
         []() -> SessionRef { return std::make_shared<ClientSession>(); },
         settings.maxSessions);
 
+    // Browsers cannot open a raw socket, so the same session class is offered a
+    // second time behind a WebSocket handshake. Identical handlers; only the
+    // transport differs.
+    const uint16 webPort = config.GetPort("web-port", 7787);
+    ServerServiceRef webService = std::make_shared<ServerService>(
+        NetAddress::Any(webPort),
+        []() -> SessionRef { return std::make_shared<ClientSession>(); }, settings.maxSessions);
+    webService->SetWebSocket(true);
+
     NHN_CHECK(peerService->Start(), "cannot listen for peers on port {}", settings.peerPort);
     NHN_CHECK(clientService->Start(), "cannot listen for clients on port {}", settings.clientPort);
+    NHN_CHECK(webService->Start(), "cannot listen for browsers on port {}", webPort);
 
     GMatchServer->StartMaintenanceTimer();
 
-    LOG_INFO("match server ready — clients on {}, peers on {}", settings.clientPort,
-             settings.peerPort);
+    LOG_INFO("match server ready — clients on {}, browsers on {}, peers on {}",
+             settings.clientPort, webPort, settings.peerPort);
 
     ServerApp::WaitForShutdown();
 
+    webService->CloseService();
     clientService->CloseService();
     peerService->CloseService();
 

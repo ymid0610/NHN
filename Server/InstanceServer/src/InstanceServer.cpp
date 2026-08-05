@@ -175,6 +175,7 @@ void InstanceServer::RegisterPeerHandlers() {
             ack.result = ResultCode::Ok;
             ack.host = _settings.publicHost;
             ack.port = _settings.clientPort;
+            ack.webPort = _settings.webPort;
             link->Send(MakePacket(ack));
 
             // Only armed after the ack: the deadline is for players arriving,

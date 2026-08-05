@@ -48,6 +48,8 @@ public:
         /// address the control link originates from.
         std::string publicHost = "127.0.0.1";
         uint16 publicPort = 0;
+        /// WebSocket port, for clients that cannot open a raw socket.
+        uint16 publicWebPort = 0;
         int32 capacity = 0;
 
         uint32 reconnectDelayMs = 2000;

@@ -55,6 +55,17 @@ public:
     /// Reason recorded by the first Disconnect call, for logging.
     std::string GetDisconnectCause() const;
 
+    /// When set, the connection speaks WebSocket beneath the packet framing.
+    /// Set by the service before the session goes live; browsers cannot open a
+    /// raw socket, and this is the only difference between them and a native
+    /// client.
+    bool IsWebSocket() const { return _webSocket; }
+    void SetWebSocket(bool value) { _webSocket = value; }
+
+    /// Queues bytes with no WebSocket wrapping. Used for the upgrade response,
+    /// which is HTTP and must not be framed.
+    void SendRaw(const void* data, int32 length);
+
     HANDLE GetHandle() override;
     void Dispatch(IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 
@@ -88,6 +99,12 @@ private:
     void ProcessSend(int32 numOfBytes);
 
     void HandleError(int32 errorCode, const char* operation);
+
+    /// Copies the packet into a new buffer behind a WebSocket frame header.
+    /// Only browsers pay for this.
+    SendBufferRef WrapWebSocket(const SendBufferRef& sendBuffer);
+
+    bool _webSocket = false;
 
     Weak<Service> _service;
     SOCKET _socket = INVALID_SOCKET;
@@ -123,6 +140,19 @@ protected:
 
     /// @param buffer points at the header; @param length is header.size.
     virtual void OnRecvPacket(uint8* buffer, int32 length) = 0;
+
+private:
+    /// Slices whole packets out of a plain byte stream.
+    int32 FramePackets(uint8* buffer, int32 length);
+    /// Performs the upgrade if needed, then unwraps frames and feeds their
+    /// contents to the same packet framer.
+    int32 HandleWebSocket(uint8* buffer, int32 length);
+
+    bool _handshakeDone = false;
+    /// Payload bytes carried over when a frame does not end on a packet
+    /// boundary. Our own client sends one packet per frame, but nothing in the
+    /// protocol promises that.
+    std::vector<uint8> _webSocketPayload;
 };
 
 using PacketSessionRef = Ref<PacketSession>;

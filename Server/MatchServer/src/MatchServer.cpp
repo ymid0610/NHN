@@ -316,7 +316,8 @@ void MatchServer::RegisterPeerHandlers() {
 
             session->SetServerType(packet.serverType);
             session->SetServerId(packet.serverId);
-            session->SetPublicEndpoint(packet.publicHost, packet.publicPort);
+            session->SetPublicEndpoint(packet.publicHost, packet.publicPort,
+                                       packet.publicWebPort);
             session->SetCapacity(packet.capacity);
             session->SetLoad(0);
 
@@ -367,9 +368,20 @@ void MatchServer::IssueClientTickets(const ClientSessionRef& session, S_HelloAck
     const std::string nickname = session->GetNickname();
     const int64 expiresAtMs = NowUnixMs() + _settings.ticketLifetimeMs;
 
+    // A browser gets the WebSocket ports; a native client gets the raw ones.
+    // The tickets and channel logic are identical either way.
+    const bool viaWebSocket = session->IsWebSocket();
+
     auto issue = [&](ServerType type, std::string& outHost, uint16& outPort,
                      std::string& outTicket) {
-        if (!GPeerRegistry->GetClientEndpoint(type, outHost, outPort)) {
+        if (type == ServerType::Voice && viaWebSocket) {
+            // Voice is UDP, which a browser cannot open at all. Rather than
+            // handing out an endpoint it can never reach, say there is none.
+            outHost.clear();
+            outPort = 0;
+            return;
+        }
+        if (!GPeerRegistry->GetClientEndpoint(type, viaWebSocket, outHost, outPort)) {
             // Not fatal: the client simply has no chat or no voice this run.
             LOG_WARN("no {} server registered; session {} will run without it", ToString(type),
                      sessionId);
@@ -556,7 +568,7 @@ void MatchServer::HandleInstanceCreateAck(const PeerSessionRef& peer,
         pending.phase = HandoffPhase::AwaitingJoin;
         pending.startedAt = NowTick();
 
-        room->EnqueueHandoffReady(ack.instanceId, ack.host, ack.port, issued);
+        room->EnqueueHandoffReady(ack.instanceId, ack.host, ack.port, ack.webPort, issued);
     });
 }
 

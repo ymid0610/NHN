@@ -6,6 +6,7 @@
 #include "core/IocpCore.h"
 #include "core/Log.h"
 #include "core/Service.h"
+#include "core/WebSocket.h"
 
 namespace nhn {
 
@@ -54,6 +55,13 @@ void Session::Send(SendBufferRef sendBuffer) {
         return;
     }
 
+    if (_webSocket) {
+        sendBuffer = WrapWebSocket(sendBuffer);
+        if (sendBuffer == nullptr) {
+            return;
+        }
+    }
+
     bool shouldRegister = false;
     {
         std::lock_guard<std::mutex> guard(_lock);
@@ -65,6 +73,49 @@ void Session::Send(SendBufferRef sendBuffer) {
         }
     }
 
+    if (shouldRegister) {
+        RegisterSend();
+    }
+}
+
+SendBufferRef Session::WrapWebSocket(const SendBufferRef& sendBuffer) {
+    const auto payloadLength = static_cast<int32>(sendBuffer->WriteSize());
+    const uint32 headerSize = ws::FrameHeaderSize(payloadLength);
+
+    SendBufferRef framed = SendBufferManager::Open(headerSize + static_cast<uint32>(payloadLength));
+    if (framed == nullptr) {
+        return nullptr;
+    }
+
+    ws::WriteFrameHeader(framed->Buffer(), ws::Opcode::Binary, payloadLength);
+    std::memcpy(framed->Buffer() + headerSize, sendBuffer->Buffer(),
+                static_cast<size_t>(payloadLength));
+    framed->Close(headerSize + static_cast<uint32>(payloadLength));
+    return framed;
+}
+
+void Session::SendRaw(const void* data, int32 length) {
+    if (data == nullptr || length <= 0 || !IsConnected()) {
+        return;
+    }
+
+    SendBufferRef buffer = SendBufferManager::Open(static_cast<uint32>(length));
+    if (buffer == nullptr) {
+        return;
+    }
+    std::memcpy(buffer->Buffer(), data, static_cast<size_t>(length));
+    buffer->Close(static_cast<uint32>(length));
+
+    // Deliberately bypasses Send: the upgrade response is HTTP and must not be
+    // wrapped in a frame the client is not yet expecting.
+    bool shouldRegister = false;
+    {
+        std::lock_guard<std::mutex> guard(_lock);
+        _sendQueue.push(std::move(buffer));
+        if (!_sendRegistered.exchange(true)) {
+            shouldRegister = true;
+        }
+    }
     if (shouldRegister) {
         RegisterSend();
     }
@@ -373,6 +424,88 @@ void Session::HandleError(int32 errorCode, const char* operation) {
 // ---------------------------------------------------------------------------
 
 int32 PacketSession::OnRecv(uint8* buffer, int32 length) {
+    return IsWebSocket() ? HandleWebSocket(buffer, length) : FramePackets(buffer, length);
+}
+
+int32 PacketSession::HandleWebSocket(uint8* buffer, int32 length) {
+    int32 consumed = 0;
+
+    if (!_handshakeDone) {
+        const ws::HandshakeResult handshake = ws::TryHandshake(buffer, length);
+        if (handshake.status == ws::ParseResult::Incomplete) {
+            return 0;  // Headers still arriving.
+        }
+        if (handshake.status == ws::ParseResult::Error) {
+            LOG_WARN("rejected a non-websocket connection on the browser port from {}",
+                     GetNetAddress().ToString());
+            return -1;
+        }
+
+        SendRaw(handshake.response.data(), static_cast<int32>(handshake.response.size()));
+        _handshakeDone = true;
+        consumed = handshake.consumed;
+    }
+
+    for (;;) {
+        ws::Frame frame;
+        int32 frameBytes = 0;
+        const ws::ParseResult result =
+            ws::DecodeFrame(buffer + consumed, length - consumed, frame, frameBytes);
+
+        if (result == ws::ParseResult::Incomplete) {
+            break;
+        }
+        if (result == ws::ParseResult::Error) {
+            LOG_WARN("malformed websocket frame from {}", GetNetAddress().ToString());
+            return -1;
+        }
+        consumed += frameBytes;
+
+        switch (frame.opcode) {
+            case ws::Opcode::Binary:
+            case ws::Opcode::Continuation:
+                // Appended rather than framed directly: a frame boundary is not
+                // required to line up with a packet boundary.
+                _webSocketPayload.insert(_webSocketPayload.end(), frame.payload.begin(),
+                                         frame.payload.end());
+                break;
+
+            case ws::Opcode::Ping: {
+                const std::vector<uint8> pong = ws::EncodeFrame(
+                    ws::Opcode::Pong, frame.payload.data(),
+                    static_cast<int32>(frame.payload.size()));
+                SendRaw(pong.data(), static_cast<int32>(pong.size()));
+                break;
+            }
+
+            case ws::Opcode::Close:
+                Disconnect("websocket close");
+                return consumed;
+
+            case ws::Opcode::Pong:
+                break;
+
+            case ws::Opcode::Text:
+                // Everything on this link is binary; a text frame means the
+                // peer is not speaking our protocol.
+                LOG_WARN("text frame on a binary link from {}", GetNetAddress().ToString());
+                return -1;
+        }
+    }
+
+    if (!_webSocketPayload.empty()) {
+        const int32 used = FramePackets(_webSocketPayload.data(),
+                                        static_cast<int32>(_webSocketPayload.size()));
+        if (used < 0) {
+            return -1;
+        }
+        _webSocketPayload.erase(_webSocketPayload.begin(), _webSocketPayload.begin() + used);
+    }
+
+    return consumed;
+}
+
+int32 PacketSession::FramePackets(uint8* buffer, int32 length) {
     int32 processedLength = 0;
 
     for (;;) {

@@ -42,6 +42,12 @@ public:
     /// are free to disconnect sessions or take other locks.
     void ForEachSession(const std::function<void(const SessionRef&)>& fn);
 
+    /// Sessions accepted here speak WebSocket beneath the packet framing.
+    /// Set before Start; the session classes and handlers are identical either
+    /// way, only the transport differs.
+    void SetWebSocket(bool value) { _webSocket = value; }
+    bool IsWebSocket() const { return _webSocket; }
+
     ServiceType GetType() const { return _type; }
     NetAddress GetNetAddress() const { return _netAddress; }
     int32 GetMaxSessionCount() const { return _maxSessionCount; }
@@ -52,6 +58,7 @@ protected:
     NetAddress _netAddress;
     SessionFactory _sessionFactory;
     int32 _maxSessionCount = 0;
+    bool _webSocket = false;
 
     mutable std::mutex _lock;
     std::unordered_set<SessionRef> _sessions;

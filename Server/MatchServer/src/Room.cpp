@@ -391,8 +391,9 @@ S_RoomConfigChanged Room::BuildConfigPacket(bool accepted) const {
 // ---------------------------------------------------------------------------
 
 void Room::EnqueueHandoffReady(InstanceId instanceId, const std::string& host, uint16 port,
+                               uint16 webPort,
                                const std::vector<std::pair<SessionId, std::string>>& tickets) {
-    PostToRoom(this, [instanceId, host, port, tickets](const RoomRef& self) {
+    PostToRoom(this, [instanceId, host, port, webPort, tickets](const RoomRef& self) {
         if (self->_state != RoomState::Starting) {
             return;
         }
@@ -406,12 +407,14 @@ void Room::EnqueueHandoffReady(InstanceId instanceId, const std::string& host, u
             S_GameStarting starting;
             starting.instanceId = instanceId;
             starting.host = host;
-            starting.port = port;
+            // Each player is sent the port their own transport can reach.
+            starting.port = member->session->IsWebSocket() ? webPort : port;
             starting.ticket = ticket;
             member->session->SendPacket(starting);
         }
 
-        LOG_INFO("room {}: handoff to instance {} at {}:{}", self->_id, instanceId, host, port);
+        LOG_INFO("room {}: handoff to instance {} at {}:{} (web {})", self->_id, instanceId, host,
+                 port, webPort);
     });
 }
 

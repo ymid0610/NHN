@@ -29,12 +29,13 @@ std::string PeerSession::GetPublicHost() const {
     return _publicHost;
 }
 
-void PeerSession::SetPublicEndpoint(std::string host, uint16 port) {
+void PeerSession::SetPublicEndpoint(std::string host, uint16 port, uint16 webPort) {
     {
         std::lock_guard<std::mutex> guard(_lock);
         _publicHost = std::move(host);
     }
     _publicPort.store(port, std::memory_order_release);
+    _publicWebPort.store(webPort, std::memory_order_release);
 }
 
 void PeerSession::OnDisconnected() {
@@ -101,14 +102,14 @@ PeerSessionRef PeerRegistry::PickInstanceServer() const {
     return best;
 }
 
-bool PeerRegistry::GetClientEndpoint(ServerType type, std::string& outHost,
+bool PeerRegistry::GetClientEndpoint(ServerType type, bool forWebSocket, std::string& outHost,
                                      uint16& outPort) const {
     const PeerSessionRef peer = FindAny(type);
     if (peer == nullptr) {
         return false;
     }
     outHost = peer->GetPublicHost();
-    outPort = peer->GetPublicPort();
+    outPort = forWebSocket ? peer->GetPublicWebPort() : peer->GetPublicPort();
     return !outHost.empty() && outPort != 0;
 }
 

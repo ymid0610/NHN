@@ -1,0 +1,16 @@
+# Native opponent for a browser-hosted match: joins room 1, readies up, then
+# plays on autopilot. Used to check that a browser and a raw client can share a
+# match — they differ only in transport.
+connect
+expect hello 5000
+room joinname webroom
+expect room 10000
+room ready on
+
+expect ingame 60000
+expect match 10000
+autoplay on
+expect gameover 240000
+
+game
+quit

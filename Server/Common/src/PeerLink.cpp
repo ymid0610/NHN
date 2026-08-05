@@ -97,6 +97,7 @@ void PeerLink::HandleConnected(const PeerLinkSessionRef& session) {
     hello.serverId = _options.serverId;
     hello.publicHost = _options.publicHost;
     hello.publicPort = _options.publicPort;
+    hello.publicWebPort = _options.publicWebPort;
     hello.capacity = _options.capacity;
     session->Send(MakePacket(hello));
 

@@ -32,6 +32,7 @@ SessionRef Service::CreateSession() {
         return nullptr;
     }
     session->SetService(shared_from_this());
+    session->SetWebSocket(_webSocket);
     return session;
 }
 

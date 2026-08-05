@@ -26,7 +26,8 @@ public:
 
     std::string GetPublicHost() const;
     uint16 GetPublicPort() const { return _publicPort.load(std::memory_order_acquire); }
-    void SetPublicEndpoint(std::string host, uint16 port);
+    uint16 GetPublicWebPort() const { return _publicWebPort.load(std::memory_order_acquire); }
+    void SetPublicEndpoint(std::string host, uint16 port, uint16 webPort);
 
     int32 GetCapacity() const { return _capacity.load(std::memory_order_acquire); }
     void SetCapacity(int32 capacity) { _capacity.store(capacity, std::memory_order_release); }
@@ -47,6 +48,7 @@ protected:
 private:
     std::atomic<proto::ServerType> _serverType{proto::ServerType::None};
     std::atomic<uint16> _publicPort{0};
+    std::atomic<uint16> _publicWebPort{0};
     std::atomic<int32> _capacity{0};
     std::atomic<int32> _load{0};
 
@@ -74,7 +76,9 @@ public:
     PeerSessionRef PickInstanceServer() const;
 
     /// Public endpoint clients should be told to use.
-    bool GetClientEndpoint(proto::ServerType type, std::string& outHost, uint16& outPort) const;
+    /// @param forWebSocket picks the browser-facing port instead of the raw one.
+    bool GetClientEndpoint(proto::ServerType type, bool forWebSocket, std::string& outHost,
+                           uint16& outPort) const;
 
     void ForEach(proto::ServerType type, const std::function<void(const PeerSessionRef&)>& fn) const;
 
