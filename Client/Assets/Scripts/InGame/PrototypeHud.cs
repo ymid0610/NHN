@@ -5,10 +5,13 @@ namespace NHN.InGame
     public sealed class PrototypeHud : MonoBehaviour
     {
         public LocalInGameController controller;
+        public Texture2D playerHudPanelTexture;
 
         private GUIStyle panelStyle;
         private GUIStyle titleStyle;
         private GUIStyle buttonStyle;
+        private GUIStyle hudNameStyle;
+        private GUIStyle hudAmmoStyle;
 
         private void OnGUI()
         {
@@ -18,6 +21,7 @@ namespace NHN.InGame
             }
 
             EnsureStyles();
+            DrawPlayerStatusHud();
 
             GUILayout.BeginArea(new Rect(16f, 16f, 340f, 325f), GUIContent.none, panelStyle);
             GUILayout.Label("InGame Prototype", titleStyle);
@@ -91,6 +95,41 @@ namespace NHN.InGame
             {
                 fixedHeight = 28f
             };
+
+            hudNameStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontStyle = FontStyle.Bold,
+                fontSize = 22,
+                normal = { textColor = new Color(0.96f, 0.82f, 0.52f, 1f) }
+            };
+
+            hudAmmoStyle = new GUIStyle(hudNameStyle)
+            {
+                alignment = TextAnchor.MiddleRight,
+                fontSize = 24
+            };
+        }
+
+        private void DrawPlayerStatusHud()
+        {
+            float width = Mathf.Min(560f, Screen.width - 32f);
+            Rect rect = new Rect((Screen.width - width) * 0.5f, 14f, width, 122f);
+
+            if (playerHudPanelTexture != null)
+            {
+                GUI.DrawTexture(rect, playerHudPanelTexture, ScaleMode.StretchToFill, true);
+            }
+            else
+            {
+                GUI.Box(rect, GUIContent.none);
+            }
+
+            string playerName = PlayerPrefs.GetString("NHN.PlayerName", "Player");
+            Rect nameRect = new Rect(rect.x + 48f, rect.y + 35f, rect.width * 0.48f, 42f);
+            Rect ammoRect = new Rect(rect.x + rect.width * 0.55f, rect.y + 35f, rect.width * 0.36f, 42f);
+            GUI.Label(nameRect, $"{playerName}  P{controller.CurrentPlayer}", hudNameStyle);
+            GUI.Label(ammoRect, $"Ammo {controller.RemainingShots}/{controller.ShotsPerTurn}", hudAmmoStyle);
         }
     }
 }

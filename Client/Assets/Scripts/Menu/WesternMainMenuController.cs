@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using NHN.InGame;
+using NHN.Network;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -56,23 +57,39 @@ namespace NHN.Menu
 
         [Header("UI Assets")]
         public Sprite menuBackdropSprite;
+        public Sprite titleBackdropSprite;
+        public Sprite lobbyBackdropSprite;
         public Sprite panelSprite;
         public Sprite darkPanelSprite;
         public Sprite headerSprite;
         public Sprite titlePlaqueSprite;
         public Sprite dividerSprite;
         public Sprite buttonGoldSprite;
+        public Sprite buttonGoldHoverSprite;
+        public Sprite buttonGoldPressedSprite;
         public Sprite buttonDarkSprite;
+        public Sprite buttonDarkHoverSprite;
+        public Sprite buttonDarkPressedSprite;
         public Sprite buttonGreenSprite;
+        public Sprite buttonGreenHoverSprite;
+        public Sprite buttonGreenPressedSprite;
         public Sprite buttonRedSprite;
+        public Sprite buttonRedHoverSprite;
+        public Sprite buttonRedPressedSprite;
+        public Sprite buttonDisabledSprite;
         public Sprite inputSprite;
         public Sprite checkboxSprite;
+        public Sprite checkboxCheckSprite;
         public Sprite sliderTrackSprite;
         public Sprite sliderFillSprite;
         public Sprite sliderHandleSprite;
 
         [Header("Defaults")]
         public string defaultPlayerName = "방랑자";
+
+        [Header("Server")]
+        public string matchServerHost = "127.0.0.1";
+        [Range(1, 65535)] public int matchServerPort = 7777;
 
         private readonly Color backgroundColor = new Color32(31, 19, 13, 255);
         private readonly Color panelColor = new Color32(56, 36, 25, 235);
@@ -92,6 +109,7 @@ namespace NHN.Menu
 
         private Canvas canvas;
         private Font menuFont;
+        private Image backgroundImage;
         private GameObject titleScreen;
         private GameObject nameScreen;
         private GameObject lobbyScreen;
@@ -109,6 +127,7 @@ namespace NHN.Menu
         private Text findStatusText;
         private Text matchmakingStatusText;
         private Text matchmakingButtonText;
+        private Text serverRoomText;
         private Toggle blockOccupiedToggle;
         private Toggle allowOverlineToggle;
         private Toggle itemsToggle;
@@ -131,12 +150,16 @@ namespace NHN.Menu
         private float aimSensitivity = 1f;
         private bool queuedForMatchmaking;
         private float matchmakingStartTime;
+        private MatchServerClient matchClient;
+        private Action pendingServerAction;
+        private string pendingJoinCode;
 
         private void Awake()
         {
             LoadPreferences();
             LoadUiAssetSprites();
             EnsureEventSystem();
+            EnsureMatchClient();
             BuildInterface();
             ApplySettingsValuesToUi();
             ShowView(MenuView.Title);
@@ -197,21 +220,51 @@ namespace NHN.Menu
 
         private void LoadUiAssetSprites()
         {
+            const string generatedButtonsPath = "GeneratedButtons/";
+            Vector4 buttonBorder = new Vector4(32f, 26f, 32f, 26f);
+            Vector4 inputBorder = new Vector4(32f, 26f, 32f, 26f);
+            Vector4 checkboxBorder = new Vector4(12f, 12f, 12f, 12f);
+
             menuBackdropSprite = ResolveUiSprite(menuBackdropSprite, "WesternMenuBackdrop", Vector4.zero);
+            titleBackdropSprite = LoadUiSprite("WesternMainMenuBackdropNoButtonsGenerated", Vector4.zero) ??
+                ResolveUiSprite(titleBackdropSprite, "WesternMainMenuBackdropNoButtonsGenerated", Vector4.zero);
+            lobbyBackdropSprite = LoadUiSprite("WesternLobbyBackgroundGenerated", Vector4.zero) ??
+                ResolveUiSprite(lobbyBackdropSprite, "WesternLobbyBackgroundGenerated", Vector4.zero);
             panelSprite = ResolveUiSprite(panelSprite, "WesternPanel", new Vector4(34f, 34f, 34f, 34f));
             darkPanelSprite = ResolveUiSprite(darkPanelSprite, "WesternPanelDark", new Vector4(34f, 34f, 34f, 34f));
             headerSprite = ResolveUiSprite(headerSprite, "WesternHeader", new Vector4(34f, 34f, 34f, 34f));
             titlePlaqueSprite = ResolveUiSprite(titlePlaqueSprite, "WesternTitlePlaque", new Vector4(52f, 44f, 52f, 44f));
             dividerSprite = ResolveUiSprite(dividerSprite, "WesternDivider", Vector4.zero);
-            buttonGoldSprite = ResolveUiSprite(buttonGoldSprite, "WesternButtonGold", new Vector4(32f, 26f, 32f, 26f));
-            buttonDarkSprite = ResolveUiSprite(buttonDarkSprite, "WesternButtonDark", new Vector4(32f, 26f, 32f, 26f));
-            buttonGreenSprite = ResolveUiSprite(buttonGreenSprite, "WesternButtonGreen", new Vector4(32f, 26f, 32f, 26f));
-            buttonRedSprite = ResolveUiSprite(buttonRedSprite, "WesternButtonRed", new Vector4(32f, 26f, 32f, 26f));
-            inputSprite = ResolveUiSprite(inputSprite, "WesternInput", new Vector4(26f, 22f, 26f, 22f));
-            checkboxSprite = ResolveUiSprite(checkboxSprite, "WesternCheckbox", new Vector4(12f, 12f, 12f, 12f));
+            buttonGoldSprite = ResolvePreferredUiSprite(buttonGoldSprite, generatedButtonsPath + "WesternButtonGoldGenerated", "WesternButtonGold", buttonBorder);
+            buttonGoldHoverSprite = ResolveUiSprite(buttonGoldHoverSprite, generatedButtonsPath + "WesternButtonGoldHoverGenerated", buttonBorder);
+            buttonGoldPressedSprite = ResolveUiSprite(buttonGoldPressedSprite, generatedButtonsPath + "WesternButtonGoldPressedGenerated", buttonBorder);
+            buttonDarkSprite = ResolvePreferredUiSprite(buttonDarkSprite, generatedButtonsPath + "WesternButtonDarkGenerated", "WesternButtonDark", buttonBorder);
+            buttonDarkHoverSprite = ResolveUiSprite(buttonDarkHoverSprite, generatedButtonsPath + "WesternButtonDarkHoverGenerated", buttonBorder);
+            buttonDarkPressedSprite = ResolveUiSprite(buttonDarkPressedSprite, generatedButtonsPath + "WesternButtonDarkPressedGenerated", buttonBorder);
+            buttonGreenSprite = ResolvePreferredUiSprite(buttonGreenSprite, generatedButtonsPath + "WesternButtonGreenGenerated", "WesternButtonGreen", buttonBorder);
+            buttonGreenHoverSprite = ResolveUiSprite(buttonGreenHoverSprite, generatedButtonsPath + "WesternButtonGreenHoverGenerated", buttonBorder);
+            buttonGreenPressedSprite = ResolveUiSprite(buttonGreenPressedSprite, generatedButtonsPath + "WesternButtonGreenPressedGenerated", buttonBorder);
+            buttonRedSprite = ResolvePreferredUiSprite(buttonRedSprite, generatedButtonsPath + "WesternButtonRedGenerated", "WesternButtonRed", buttonBorder);
+            buttonRedHoverSprite = ResolveUiSprite(buttonRedHoverSprite, generatedButtonsPath + "WesternButtonRedHoverGenerated", buttonBorder);
+            buttonRedPressedSprite = ResolveUiSprite(buttonRedPressedSprite, generatedButtonsPath + "WesternButtonRedPressedGenerated", buttonBorder);
+            buttonDisabledSprite = ResolveUiSprite(buttonDisabledSprite, generatedButtonsPath + "WesternButtonDisabledGenerated", buttonBorder);
+            inputSprite = ResolvePreferredUiSprite(inputSprite, generatedButtonsPath + "WesternInputGenerated", "WesternInput", inputBorder);
+            checkboxSprite = ResolvePreferredUiSprite(checkboxSprite, generatedButtonsPath + "WesternCheckboxGenerated", "WesternCheckbox", checkboxBorder);
+            checkboxCheckSprite = ResolveUiSprite(checkboxCheckSprite, generatedButtonsPath + "WesternCheckboxCheckGenerated", Vector4.zero);
             sliderTrackSprite = ResolveUiSprite(sliderTrackSprite, "WesternSliderTrack", new Vector4(18f, 12f, 18f, 12f));
             sliderFillSprite = ResolveUiSprite(sliderFillSprite, "WesternSliderFill", new Vector4(18f, 12f, 18f, 12f));
             sliderHandleSprite = ResolveUiSprite(sliderHandleSprite, "WesternSliderHandle", new Vector4(12f, 16f, 12f, 16f));
+        }
+
+        private Sprite ResolvePreferredUiSprite(Sprite current, string preferredAssetName, string fallbackAssetName, Vector4 border)
+        {
+            Sprite preferred = LoadUiSprite(preferredAssetName, border);
+            if (preferred != null)
+            {
+                return preferred;
+            }
+
+            return ResolveUiSprite(current, fallbackAssetName, border);
         }
 
         private Sprite ResolveUiSprite(Sprite current, string assetName, Vector4 border)
@@ -292,8 +345,8 @@ namespace NHN.Menu
         {
             RectTransform background = CreateRect("Background", root);
             Stretch(background, 0f, 0f, 0f, 0f);
-            Image backgroundImage = background.gameObject.AddComponent<Image>();
-            ApplyUiSprite(backgroundImage, menuBackdropSprite, backgroundColor);
+            backgroundImage = background.gameObject.AddComponent<Image>();
+            ApplyUiSprite(backgroundImage, GetBackdropForView(MenuView.Title), backgroundColor);
             backgroundImage.raycastTarget = false;
 
             CreateBand(root, "Top Brass Rule", true, 16f, brassColor);
@@ -381,6 +434,9 @@ namespace NHN.Menu
             CreateButton(nav, "Find Room Nav", "방 찾기", 0f, 58f, panelDeepColor, parchmentColor, delegate { ShowView(MenuView.FindRoom); });
             CreateButton(nav, "Matchmaking Nav", "매치메이킹", 0f, 58f, panelDeepColor, parchmentColor, delegate { ShowView(MenuView.Matchmaking); });
             CreateButton(nav, "Settings Nav", "설정", 0f, 58f, panelDeepColor, parchmentColor, delegate { ShowView(MenuView.Settings); });
+            CreateButton(nav, "Server Ready Button", "준비 완료", 0f, 54f, greenAccentColor, inkColor, SendReadyToServer);
+            CreateButton(nav, "Server Start Button", "서버 게임 시작", 0f, 54f, brassColor, inkColor, StartServerRoom);
+            CreateButton(nav, "Server Leave Button", "방 나가기", 0f, 54f, panelDeepColor, parchmentColor, LeaveServerRoom);
             CreateFlexibleSpacer(nav);
             CreateButton(nav, "Practice Button", "로컬 테스트 시작", 0f, 62f, redAccentColor, Color.white, StartLocalGame);
 
@@ -416,7 +472,7 @@ namespace NHN.Menu
             RectTransform rulePanel = CreateSection(panel, "Rule Snapshot", 250f);
             CreateLabel(rulePanel, "Rules Title", "현재 핵심 규칙", 28, brassColor, TextAnchor.MiddleLeft, 42f, FontStyle.Bold);
             CreateLabel(rulePanel, "Rules Text", "오목은 최대 4명, 한 턴 6발. 틱택토는 최대 2명, 한 턴 1발. 모두 발사하면 큰 보드판으로 탄착 위치를 확인하고 다음 판으로 넘어간다.", 23, parchmentColor, TextAnchor.UpperLeft, 98f, FontStyle.Normal);
-            CreateLabel(rulePanel, "Server Text", "서버 연동 시점에는 방 생성, 코드 입장, 매칭 큐 버튼만 실제 API 호출로 교체하면 된다.", 21, parchmentMutedColor, TextAnchor.UpperLeft, 70f, FontStyle.Normal);
+            serverRoomText = CreateLabel(rulePanel, "Server Text", "서버 방 없음", 21, parchmentMutedColor, TextAnchor.UpperLeft, 70f, FontStyle.Normal);
         }
 
         private void BuildCreateRoomPanel(RectTransform panel)
@@ -546,11 +602,16 @@ namespace NHN.Menu
 
             if (isLobby)
             {
+                UpdateBackdrop(view);
                 UpdateHeader();
                 if (view == MenuView.Hub)
                 {
                     SetStatus("로비 대기 중");
                 }
+            }
+            else
+            {
+                UpdateBackdrop(view);
             }
         }
 
@@ -566,6 +627,7 @@ namespace NHN.Menu
             SavePreferences();
             ShowView(MenuView.Hub);
             SetStatus(playerName + " 입장 완료");
+            ConnectToMatchServer();
         }
 
         private void SetCreateMode(GameMode mode)
@@ -648,7 +710,16 @@ namespace NHN.Menu
             generatedRoomCode = GenerateRoomCode();
             SavePreferences();
             UpdateCreateSummary();
-            SetStatus("방 코드 생성: " + generatedRoomCode);
+            SetStatus("서버 방 생성 요청: " + generatedRoomCode);
+
+            RunWhenConnected(delegate
+            {
+                ServerGameMode mode = ToServerMode(selectedMode);
+                if (matchClient.CreateRoom(generatedRoomCode, mode, string.Empty))
+                {
+                    matchClient.SetRoomConfig(ServerMatchConfig.CreateDefault(mode, itemsEnabled));
+                }
+            });
         }
 
         private string GenerateRoomCode()
@@ -674,8 +745,13 @@ namespace NHN.Menu
                 return;
             }
 
-            findStatusText.text = "코드 " + code + " 확인 요청 준비 완료. 서버 연결 전이라 실제 조회는 아직 막아두었다.";
+            pendingJoinCode = null;
+            findStatusText.text = "코드 " + code + " 조회 중";
             SetStatus("방 코드 확인: " + code);
+            RunWhenConnected(delegate
+            {
+                matchClient.RequestRoomList(ServerGameMode.None, code, true, false, 0, 20);
+            });
         }
 
         private void JoinRoomMock()
@@ -689,8 +765,13 @@ namespace NHN.Menu
             }
 
             SavePreferences();
-            findStatusText.text = "코드 " + code + " 방 입장 흐름 확인 완료. 서버 붙으면 여기서 JoinRoom API를 호출하면 된다.";
-            SetStatus("방 입장 목업 완료");
+            pendingJoinCode = code;
+            findStatusText.text = "코드 " + code + " 입장할 방 검색 중";
+            SetStatus("방 입장 요청: " + code);
+            RunWhenConnected(delegate
+            {
+                matchClient.RequestRoomList(ServerGameMode.None, code, true, false, 0, 20);
+            });
         }
 
         private string NormalizeRoomCode(string raw)
@@ -721,12 +802,20 @@ namespace NHN.Menu
                 matchmakingStartTime = Time.unscaledTime;
                 matchmakingButtonText.text = "매칭 취소";
                 SetStatus(GetModeName(matchmakingMode) + " 매칭 대기 시작");
+                RunWhenConnected(delegate
+                {
+                    matchClient.QuickMatch(ToServerMode(matchmakingMode));
+                });
             }
             else
             {
                 matchmakingButtonText.text = "매칭 시작";
                 matchmakingStatusText.text = "큐 취소됨";
                 SetStatus("매칭 취소");
+                if (matchClient != null && matchClient.IsAuthenticated && matchClient.CurrentRoom.IsValid)
+                {
+                    matchClient.LeaveRoom();
+                }
             }
         }
 
@@ -805,6 +894,267 @@ namespace NHN.Menu
             }
         }
 
+        private void EnsureMatchClient()
+        {
+            if (matchClient != null)
+            {
+                return;
+            }
+
+            matchClient = GetComponent<MatchServerClient>();
+            if (matchClient == null)
+            {
+                matchClient = gameObject.AddComponent<MatchServerClient>();
+            }
+
+            matchClient.StatusChanged += OnMatchStatusChanged;
+            matchClient.HelloAck += OnMatchHelloAck;
+            matchClient.RoomChanged += OnMatchRoomChanged;
+            matchClient.RoomListReceived += OnMatchRoomListReceived;
+            matchClient.GameStarting += OnMatchGameStarting;
+        }
+
+        private void ConnectToMatchServer()
+        {
+            EnsureMatchClient();
+            if (matchClient.IsAuthenticated)
+            {
+                UpdateServerRoomText();
+                return;
+            }
+
+            matchClient.ConnectAndHello(matchServerHost, matchServerPort, playerName);
+        }
+
+        private void RunWhenConnected(Action action)
+        {
+            EnsureMatchClient();
+            if (matchClient.IsAuthenticated)
+            {
+                if (action != null)
+                {
+                    action();
+                }
+
+                return;
+            }
+
+            pendingServerAction = action;
+            ConnectToMatchServer();
+        }
+
+        private void OnMatchStatusChanged(string message)
+        {
+            SetStatus(message);
+        }
+
+        private void OnMatchHelloAck(ServerResultCode result, ulong sessionId, string nickname)
+        {
+            if (result != ServerResultCode.Ok)
+            {
+                pendingServerAction = null;
+                SetStatus("서버 인증 실패: " + ServerProtocolText.ToDisplay(result));
+                UpdateServerRoomText();
+                return;
+            }
+
+            playerName = string.IsNullOrEmpty(nickname) ? playerName : nickname;
+            UpdateHeader();
+            UpdateServerRoomText();
+
+            Action action = pendingServerAction;
+            pendingServerAction = null;
+            if (action != null)
+            {
+                action();
+            }
+        }
+
+        private void OnMatchRoomChanged(ServerRoomDetail room)
+        {
+            if (queuedForMatchmaking && room.IsValid)
+            {
+                queuedForMatchmaking = false;
+                if (matchmakingButtonText != null)
+                {
+                    matchmakingButtonText.text = "매칭 시작";
+                }
+
+                if (matchmakingStatusText != null)
+                {
+                    matchmakingStatusText.text = "매칭 완료: " + room.Name;
+                }
+            }
+
+            UpdateServerRoomText();
+        }
+
+        private void OnMatchRoomListReceived(List<ServerRoomSummary> rooms, uint totalCount, ushort page)
+        {
+            if (!string.IsNullOrEmpty(pendingJoinCode))
+            {
+                ServerRoomSummary target = default(ServerRoomSummary);
+                bool found = false;
+                for (int i = 0; i < rooms.Count; i++)
+                {
+                    if (string.Equals(rooms[i].Name, pendingJoinCode, StringComparison.OrdinalIgnoreCase))
+                    {
+                        target = rooms[i];
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found && rooms.Count == 1)
+                {
+                    target = rooms[0];
+                    found = true;
+                }
+
+                string code = pendingJoinCode;
+                pendingJoinCode = null;
+                if (found)
+                {
+                    if (findStatusText != null)
+                    {
+                        findStatusText.text = "코드 " + code + " 방 발견, 입장 요청 중";
+                    }
+
+                    matchClient.JoinRoom(target.RoomId, string.Empty);
+                    return;
+                }
+
+                if (findStatusText != null)
+                {
+                    findStatusText.text = "코드 " + code + " 방을 찾지 못했다.";
+                }
+
+                SetStatus("방 검색 실패");
+                return;
+            }
+
+            if (findStatusText == null)
+            {
+                return;
+            }
+
+            if (rooms.Count == 0)
+            {
+                findStatusText.text = "검색 결과 없음";
+                return;
+            }
+
+            StringBuilder builder = new StringBuilder();
+            builder.AppendFormat("{0}개 방 발견\n", totalCount);
+            int count = Mathf.Min(rooms.Count, 4);
+            for (int i = 0; i < count; i++)
+            {
+                builder.Append(ServerProtocolText.ToRoomLine(rooms[i]));
+                if (i < count - 1)
+                {
+                    builder.Append('\n');
+                }
+            }
+
+            findStatusText.text = builder.ToString();
+        }
+
+        private void OnMatchGameStarting(ServerGameStartingInfo info)
+        {
+            PlayerPrefs.SetString("NHN.InstanceHost", info.Host);
+            PlayerPrefs.SetInt("NHN.InstancePort", info.Port);
+            PlayerPrefs.SetString("NHN.InstanceTicket", info.Ticket);
+            PlayerPrefs.SetString("NHN.InstanceId", info.InstanceId.ToString());
+            PlayerPrefs.Save();
+
+            SetStatus("인스턴스 티켓 수신: " + info.Host + ":" + info.Port);
+        }
+
+        private void SendReadyToServer()
+        {
+            RunWhenConnected(delegate
+            {
+                matchClient.SetReady(true);
+            });
+        }
+
+        private void StartServerRoom()
+        {
+            RunWhenConnected(delegate
+            {
+                matchClient.StartRoom();
+            });
+        }
+
+        private void LeaveServerRoom()
+        {
+            pendingJoinCode = null;
+            pendingServerAction = null;
+            queuedForMatchmaking = false;
+
+            if (matchmakingButtonText != null)
+            {
+                matchmakingButtonText.text = "매칭 시작";
+            }
+
+            if (matchClient != null && matchClient.IsAuthenticated)
+            {
+                matchClient.LeaveRoom();
+            }
+            else
+            {
+                SetStatus("나갈 서버 방이 없다.");
+            }
+        }
+
+        private ServerGameMode ToServerMode(GameMode mode)
+        {
+            return mode == GameMode.TicTacToe ? ServerGameMode.TicTacToe : ServerGameMode.Gomoku15;
+        }
+
+        private void UpdateServerRoomText()
+        {
+            if (serverRoomText == null)
+            {
+                return;
+            }
+
+            if (matchClient == null || !matchClient.IsAuthenticated)
+            {
+                serverRoomText.text = "서버 연결 전. Match 서버 기본 주소: " + matchServerHost + ":" + matchServerPort;
+                return;
+            }
+
+            ServerRoomDetail room = matchClient.CurrentRoom;
+            if (!room.IsValid)
+            {
+                serverRoomText.text = "서버 연결됨. 아직 들어간 방 없음.";
+                return;
+            }
+
+            int memberCount = room.Members != null ? room.Members.Count : 0;
+            StringBuilder builder = new StringBuilder();
+            builder.AppendFormat("서버 방 #{0}  {1}  {2}/{3}\n", room.RoomId, room.Name, memberCount, room.Capacity);
+            if (room.Members != null)
+            {
+                for (int i = 0; i < room.Members.Count; i++)
+                {
+                    ServerRoomMember member = room.Members[i];
+                    builder.AppendFormat("{0}P {1}{2}{3}",
+                        member.Slot + 1,
+                        member.Nickname,
+                        member.IsHost ? " [HOST]" : string.Empty,
+                        member.IsReady ? " [READY]" : string.Empty);
+                    if (i < room.Members.Count - 1)
+                    {
+                        builder.Append('\n');
+                    }
+                }
+            }
+
+            serverRoomText.text = builder.ToString();
+        }
+
         private void UpdateHeader()
         {
             if (nameBadgeText != null)
@@ -819,6 +1169,26 @@ namespace NHN.Menu
             {
                 statusText.text = value;
             }
+        }
+
+        private void UpdateBackdrop(MenuView view)
+        {
+            if (backgroundImage == null)
+            {
+                return;
+            }
+
+            ApplyUiSprite(backgroundImage, GetBackdropForView(view), backgroundColor);
+        }
+
+        private Sprite GetBackdropForView(MenuView view)
+        {
+            if (view == MenuView.Title || view == MenuView.Name)
+            {
+                return titleBackdropSprite != null ? titleBackdropSprite : menuBackdropSprite;
+            }
+
+            return lobbyBackdropSprite != null ? lobbyBackdropSprite : menuBackdropSprite;
         }
 
         private string GetModeName(GameMode mode)
@@ -941,7 +1311,17 @@ namespace NHN.Menu
 
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            SetButtonColors(button, buttonSprite != null ? Color.white : background);
+            if (buttonSprite != null)
+            {
+                button.transition = Selectable.Transition.SpriteSwap;
+                SetButtonSpriteState(button, SelectButtonHoverSprite(background), SelectButtonPressedSprite(background));
+                SetButtonColors(button, Color.white);
+            }
+            else
+            {
+                SetButtonColors(button, background);
+            }
+
             button.onClick.AddListener(onClick);
 
             Outline outline = rect.gameObject.AddComponent<Outline>();
@@ -990,7 +1370,7 @@ namespace NHN.Menu
             RectTransform check = CreateRect("Check", box);
             Stretch(check, 5f, 5f, 5f, 5f);
             Image checkImage = check.gameObject.AddComponent<Image>();
-            checkImage.color = brassColor;
+            ApplyUiSprite(checkImage, checkboxCheckSprite, brassColor);
             checkImage.raycastTarget = false;
 
             Text text = CreateText(row, "Label", label, 20, parchmentColor, TextAnchor.MiddleLeft, FontStyle.Bold);
@@ -1275,6 +1655,46 @@ namespace NHN.Menu
             return buttonDarkSprite;
         }
 
+        private Sprite SelectButtonHoverSprite(Color background)
+        {
+            if (IsSimilarColor(background, brassColor))
+            {
+                return buttonGoldHoverSprite;
+            }
+
+            if (IsSimilarColor(background, redAccentColor))
+            {
+                return buttonRedHoverSprite;
+            }
+
+            if (IsSimilarColor(background, greenAccentColor))
+            {
+                return buttonGreenHoverSprite;
+            }
+
+            return buttonDarkHoverSprite;
+        }
+
+        private Sprite SelectButtonPressedSprite(Color background)
+        {
+            if (IsSimilarColor(background, brassColor))
+            {
+                return buttonGoldPressedSprite;
+            }
+
+            if (IsSimilarColor(background, redAccentColor))
+            {
+                return buttonRedPressedSprite;
+            }
+
+            if (IsSimilarColor(background, greenAccentColor))
+            {
+                return buttonGreenPressedSprite;
+            }
+
+            return buttonDarkPressedSprite;
+        }
+
         private bool IsSimilarColor(Color left, Color right)
         {
             const float tolerance = 0.03f;
@@ -1294,6 +1714,16 @@ namespace NHN.Menu
             colors.colorMultiplier = 1f;
             colors.fadeDuration = 0.08f;
             button.colors = colors;
+        }
+
+        private void SetButtonSpriteState(Button button, Sprite highlighted, Sprite pressed)
+        {
+            SpriteState state = button.spriteState;
+            state.highlightedSprite = highlighted != null ? highlighted : button.targetGraphic.GetComponent<Image>().sprite;
+            state.pressedSprite = pressed != null ? pressed : state.highlightedSprite;
+            state.selectedSprite = state.highlightedSprite;
+            state.disabledSprite = buttonDisabledSprite != null ? buttonDisabledSprite : state.pressedSprite;
+            button.spriteState = state;
         }
 
         private void Stretch(RectTransform rect, float left, float right, float top, float bottom)

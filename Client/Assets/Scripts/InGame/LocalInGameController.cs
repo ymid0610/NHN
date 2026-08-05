@@ -27,6 +27,12 @@ namespace NHN.InGame
         public RoundResultBoardOverlay resultOverlay;
         public Sprite resultBoardSprite;
 
+        [Header("Generated Item Sprites")]
+        public Sprite fryingPanItemSprite;
+        public Sprite outlawBanditSprite;
+        public Sprite tripleShotPowerupSprite;
+        public Sprite camelCarrierSprite;
+
         [Header("Game Rules")]
         public GameMode gameMode = GameMode.Gomoku;
         [Range(1, 4)] public int maxPlayers = 4;
