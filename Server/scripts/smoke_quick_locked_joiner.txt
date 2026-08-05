@@ -1,0 +1,26 @@
+# The locked room 'vault' is the only duo room with a free slot, and it is the
+# fullest one, so it would be the top candidate if quick match considered it.
+connect
+expect hello 5000
+sleep 2000
+
+echo --- quick match must open its own room, not enter 'vault' ---
+room quick duo
+expect room 5000
+room info
+
+echo --- but the room is not unreachable: entering by hand with the password works ---
+room leave
+expect noroom 5000
+room joinname vault s3cret
+expect room 5000
+room info
+
+echo --- and the wrong password is still refused ---
+room leave
+expect noroom 5000
+room joinname vault wrongpw
+sleep 800
+
+stat
+quit

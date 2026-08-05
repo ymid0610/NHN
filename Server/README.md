@@ -136,6 +136,7 @@ scenarios do not turn into flaky timing guesses.
 | `smoke_room_rules.txt` | locked rooms, search filters, chat channels, start/kick refusals, rate limiting |
 | `smoke_quick.txt` | quick match funnels four players into one room |
 | `smoke_quick_overflow.txt` | six duo players become three full rooms, not six empty ones |
+| `smoke_quick_locked_*.txt` | quick match refuses a locked room even as top candidate, which stays reachable by hand |
 | `smoke_host.txt` + `smoke_join.txt` | full 4-player room to instance handoff, with voice |
 | `smoke_kick_host.txt` + `smoke_kick_joiner.txt` | ready enforcement, kick, rejoin cooldown |
 | `smoke_migrate_host.txt` + `smoke_migrate_joiner.txt` | host migration when the host leaves |
@@ -174,8 +175,16 @@ automates finding one with space.
 
 Candidates are ordered **fullest first**. Filling one room to capacity starts a
 game; spreading players evenly leaves several rooms one player short and nobody
-playing. Locked rooms are skipped, since quick match has no password to offer,
-as are rooms already in or entering a match.
+playing. Rooms already in or entering a match are skipped.
+
+Locked rooms are skipped too — quick match has no password to offer — and that
+holds twice over: they are filtered out of the candidate list, and a join
+attempt with an empty password would be refused anyway, which the retry path
+absorbs. A room's password is fixed at creation, so there is no window in which
+an indexed room becomes locked. Skipping them does not make them unreachable:
+they stay listed and joinable by hand with the password, exactly as before.
+Auto-created quick-match rooms are always open, or the next player could not get
+in.
 
 The candidate list comes from the search index, which lags the rooms themselves,
 so a room can fill up between being picked and the join actually running. Rather
