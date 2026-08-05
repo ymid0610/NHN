@@ -1,0 +1,15 @@
+# Second player for the item scenario.
+connect
+expect hello 5000
+sleep 1000
+room joinname brawl
+expect room 10000
+room ready on
+
+expect ingame 30000
+expect match 10000
+autoplay on
+expect gameover 240000
+
+game
+quit

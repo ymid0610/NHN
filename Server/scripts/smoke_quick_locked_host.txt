@@ -1,9 +1,9 @@
-# Holds open a locked duo room with one free slot, so quick match has an
+# Holds open a locked tictactoe room with one free slot, so quick match has an
 # otherwise perfect candidate that it must refuse. Pair with
 # smoke_quick_locked_joiner.txt.
 connect
 expect hello 5000
-room create duo vault s3cret
+room create tictactoe vault s3cret
 expect room 5000
 room info
 sleep 9000

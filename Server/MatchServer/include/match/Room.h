@@ -33,7 +33,7 @@ public:
         uint64 joinOrder = 0;
     };
 
-    Room(RoomId id, std::string name, proto::RoomType type, std::string password);
+    Room(RoomId id, std::string name, proto::GameMode type, std::string password);
 
     /// Reports the outcome of a join attempt.
     ///
@@ -50,6 +50,11 @@ public:
     void EnqueueReady(SessionId sessionId, bool ready);
     void EnqueueStart(SessionId requesterId);
 
+    /// Host-only settings change. Whatever arrives is clamped to something the
+    /// mode allows and then broadcast, so a stale client cannot wedge the room
+    /// with an impossible combination.
+    void EnqueueSetConfig(SessionId requesterId, proto::MatchConfig config);
+
     /// Handoff results, delivered from the match server's peer handlers.
     void EnqueueHandoffReady(InstanceId instanceId, const std::string& host, uint16 port,
                              const std::vector<std::pair<SessionId, std::string>>& tickets);
@@ -60,7 +65,7 @@ public:
 
     /// Immutable identity, safe to read from anywhere.
     RoomId GetId() const { return _id; }
-    proto::RoomType GetRoomType() const { return _roomType; }
+    proto::GameMode GetGameMode() const { return _mode; }
     uint8 GetCapacity() const { return _capacity; }
     bool HasPassword() const { return !_password.empty(); }
     const std::string& GetName() const { return _name; }
@@ -73,6 +78,11 @@ private:
     void HandleKick(SessionId requesterId, SessionId targetId);
     void HandleReady(SessionId sessionId, bool ready);
     void HandleStart(SessionId requesterId);
+    void HandleSetConfig(SessionId requesterId, proto::MatchConfig config);
+
+    /// Builds the settings broadcast, including the item set that will really
+    /// spawn under the current ammo rule.
+    proto::S_RoomConfigChanged BuildConfigPacket(bool accepted) const;
 
     Member* FindMember(SessionId sessionId);
     uint8 AllocateSlot() const;
@@ -95,7 +105,7 @@ private:
 
     const RoomId _id;
     const std::string _name;
-    const proto::RoomType _roomType;
+    const proto::GameMode _mode;
     const uint8 _capacity;
     /// Stored as given. Rooms are ephemeral and there is no account system to
     /// protect, so this is a door code rather than a credential — but it does
@@ -110,6 +120,9 @@ private:
     /// Session -> tick until which they may not rejoin. Without this a kicked
     /// player simply reconnects immediately and the host has no recourse.
     std::unordered_map<SessionId, TickCount> _kickCooldowns;
+
+    /// Match settings. Only ever touched on this room's job queue.
+    proto::MatchConfig _config;
 
     InstanceId _pendingInstanceId = kInvalidInstanceId;
 };

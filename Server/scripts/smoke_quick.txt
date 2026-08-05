@@ -1,11 +1,11 @@
 # Quick match, one player per process. Run four of these with distinct nicks:
-# the first opens a quad room, the rest are funnelled into it because
+# the first opens a gomoku9 room, the rest are funnelled into it because
 # candidates are ordered fullest-first.
 connect
 expect hello 5000
 expect chat 5000
 
-room quick quad
+room quick gomoku9
 expect room 10000
 room info
 

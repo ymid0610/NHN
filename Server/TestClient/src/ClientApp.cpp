@@ -66,6 +66,7 @@ void ClientApp::Start() {
     RegisterMatchHandlers();
     RegisterChatHandlers();
     RegisterInstanceHandlers();
+    RegisterGameHandlers();
 }
 
 void ClientApp::Stop() {
@@ -294,6 +295,21 @@ void ClientApp::RegisterMatchHandlers() {
                            packet.room.hostSessionId);
         });
 
+    _matchDispatcher.On<S_RoomConfigChanged>(
+        [this](const SessionRef&, const S_RoomConfigChanged& packet) {
+            {
+                std::lock_guard<std::mutex> guard(_lock);
+                // Kept so 'room config key=value' edits the live settings
+                // rather than resetting everything else to defaults.
+                _matchConfig = packet.config;
+            }
+            Console::Event("settings: rounds={} paper={}..{} ammo={} waveCap={} items=0x{:02X}{}",
+                           packet.config.rounds, packet.config.paperSizeMin,
+                           packet.config.paperSizeMax, packet.config.ammoPerWave,
+                           packet.config.waveLimit, packet.effectiveItemMask,
+                           packet.accepted ? "" : " (adjusted)");
+        });
+
     _matchDispatcher.On<S_RoomList>([this](const SessionRef&, const S_RoomList& packet) {
         {
             std::lock_guard<std::mutex> guard(_lock);
@@ -304,7 +320,7 @@ void ClientApp::RegisterMatchHandlers() {
         Console::Print("  {} room(s), page {}", packet.totalCount, packet.page);
         for (const RoomSummary& room : packet.rooms) {
             Console::Print("    #{:<4} {:<20} {:<5} {}/{} {:<8} host={}", room.roomId, room.name,
-                           ToString(room.roomType), room.memberCount, room.capacity,
+                           ToString(room.mode), room.memberCount, room.capacity,
                            room.hasPassword ? "[locked]" : "", room.hostNickname);
         }
     });
@@ -485,6 +501,283 @@ void ClientApp::RegisterInstanceHandlers() {
         _inInstance.store(false);
         Console::Event("match ended: {}", packet.reason);
     });
+}
+
+// ---------------------------------------------------------------------------
+// Game
+// ---------------------------------------------------------------------------
+
+void ClientApp::RegisterGameHandlers() {
+    _instanceDispatcher.On<S_MatchSetup>([this](const SessionRef&, const S_MatchSetup& packet) {
+        {
+            std::lock_guard<std::mutex> guard(_lock);
+            _boardSpec = packet.board;
+            _matchConfig = packet.config;
+            _boardCells.assign(static_cast<size_t>(packet.board.width) * packet.board.height,
+                               0xFF);
+            for (const RoomMemberInfo& player : packet.players) {
+                if (player.sessionId == _sessionId.load()) {
+                    _mySlot.store(player.slot);
+                }
+            }
+        }
+        _matchSetupSeen.store(true);
+        Console::Event("match: {} on {}x{}, {} in a row, {} rounds, ammo {}, wave cap {}",
+                       ToString(packet.mode), packet.board.width, packet.board.height,
+                       packet.board.winLength, packet.config.rounds, packet.config.ammoPerWave,
+                       packet.config.waveLimit);
+    });
+
+    _instanceDispatcher.On<S_RoundStart>([this](const SessionRef&, const S_RoundStart& packet) {
+        _roundIndex.store(packet.roundIndex);
+        {
+            std::lock_guard<std::mutex> guard(_lock);
+            std::fill(_boardCells.begin(), _boardCells.end(), uint8{0xFF});
+        }
+        Console::Event("round {}/{} — paper size {}", packet.roundIndex + 1, packet.roundCount,
+                       packet.paperSize);
+    });
+
+    _instanceDispatcher.On<S_WaveStart>([this](const SessionRef&, const S_WaveStart& packet) {
+        _waveActive.store(true);
+        _myAmmo.store(packet.ammo);
+        Console::Event("wave {} — ammo {}", packet.waveIndex, packet.ammo);
+        // Deliberately does NOT re-arm autoplay: the chain runs continuously
+        // and checks _waveActive itself. Starting another one per wave stacks
+        // them up and the combined rate trips the server's shot limiter.
+    });
+
+    _instanceDispatcher.On<S_WaveEnd>([this](const SessionRef&, const S_WaveEnd&) {
+        _waveActive.store(false);
+    });
+
+    _instanceDispatcher.On<S_WorldSnapshot>(
+        [this](const SessionRef&, const S_WorldSnapshot& packet) {
+            std::lock_guard<std::mutex> guard(_lock);
+            _entities = packet.entities;
+            _lastSnapshotTick = packet.tick;
+        });
+
+    _instanceDispatcher.On<S_CellClaimed>([this](const SessionRef&, const S_CellClaimed& packet) {
+        std::lock_guard<std::mutex> guard(_lock);
+        if (packet.cellIndex < _boardCells.size()) {
+            _boardCells[packet.cellIndex] = packet.ownerSlot;
+        }
+        if (packet.ownerSlot == _mySlot.load()) {
+            _cellsClaimedByMe.fetch_add(1);
+        }
+    });
+
+    _instanceDispatcher.On<S_ShotResolved>([this](const SessionRef&, const S_ShotResolved& packet) {
+        if (packet.shooter != _sessionId.load() || packet.derived) {
+            return;  // Only narrate our own trigger pulls.
+        }
+        switch (packet.kind) {
+            case HitKind::Cell:
+                Console::Event("hit cell {}", packet.cellIndex);
+                break;
+            case HitKind::CellTaken:
+                Console::Event("cell {} was already taken", packet.cellIndex);
+                break;
+            case HitKind::Blocker:
+                Console::Event("blocked");
+                break;
+            case HitKind::Decoy:
+                Console::Event("decoy — shot wasted");
+                break;
+            case HitKind::Item:
+                break;  // reported by S_ItemTriggered
+            case HitKind::Miss:
+                Console::Event("miss");
+                break;
+        }
+    });
+
+    _instanceDispatcher.On<S_ItemTriggered>(
+        [this](const SessionRef&, const S_ItemTriggered& packet) {
+            const bool mine = packet.victimSlot == _mySlot.load();
+            Console::Event("item {} triggered{}", ToString(packet.item),
+                           packet.victimSlot == 0xFF
+                               ? ""
+                               : (mine ? " — on you!" : " — on another player"));
+        });
+
+    _instanceDispatcher.On<S_StatusChanged>(
+        [this](const SessionRef&, const S_StatusChanged& packet) {
+            if (packet.slot != _mySlot.load()) {
+                return;
+            }
+            _stunned.store(HasFlag(packet.flags, StatusFlags::Stunned));
+            Console::Event("status: {}{}", _stunned.load() ? "stunned " : "",
+                           HasFlag(packet.flags, StatusFlags::Blinded) ? "blinded" : "");
+        });
+
+    _instanceDispatcher.On<S_AmmoChanged>([this](const SessionRef&, const S_AmmoChanged& packet) {
+        if (packet.slot == _mySlot.load()) {
+            _myAmmo.store(packet.ammo);
+        }
+    });
+
+    _instanceDispatcher.On<S_FireRejected>(
+        [](const SessionRef&, const S_FireRejected& packet) {
+            Console::Error("fire rejected: {}", ToString(packet.result));
+        });
+
+    _instanceDispatcher.On<S_RoundEnd>([this](const SessionRef&, const S_RoundEnd& packet) {
+        _waveActive.store(false);
+        for (const PlayerScore& score : packet.scores) {
+            if (score.sessionId == _sessionId.load()) {
+                _myScore.store(score.score);
+            }
+        }
+        Console::Event("round {} over — {}", packet.roundIndex + 1,
+                       packet.winnerSlot == 0xFF ? "no line completed"
+                                                 : "slot " + std::to_string(packet.winnerSlot));
+    });
+
+    _instanceDispatcher.On<S_GameOver>([this](const SessionRef&, const S_GameOver& packet) {
+        _gameOver.store(true);
+        _autoplay.store(false);
+        std::string winners;
+        for (const uint8 slot : packet.winnerSlots) {
+            winners += (winners.empty() ? "" : ", ") + std::to_string(slot);
+        }
+        Console::Event("match over — winning slot(s): {}", winners);
+        for (const PlayerScore& score : packet.scores) {
+            Console::Print("    slot {} score {}", score.slot, score.score);
+        }
+    });
+}
+
+bool ClientApp::AimAtCell(uint16 cellIndex, int32& outX, int32& outY, uint32& outTick) const {
+    std::lock_guard<std::mutex> guard(_lock);
+    if (_boardSpec.width == 0 || cellIndex >= _boardCells.size()) {
+        return false;
+    }
+
+    for (const EntityState& entity : _entities) {
+        if (entity.kind != EntityKind::TargetSheet) {
+            continue;
+        }
+        const float cellW = static_cast<float>(entity.halfWidth * 2) / _boardSpec.width;
+        const float cellH = static_cast<float>(entity.halfHeight * 2) / _boardSpec.height;
+        const uint16 cellX = cellIndex % _boardSpec.width;
+        const uint16 cellY = cellIndex / _boardSpec.width;
+
+        outX = static_cast<int32>(entity.x - entity.halfWidth + (cellX + 0.5f) * cellW);
+        outY = static_cast<int32>(entity.y - entity.halfHeight + (cellY + 0.5f) * cellH);
+        // The tick we saw it at, not "now" — the server rewinds to this.
+        outTick = _lastSnapshotTick;
+        return outX >= 0 && outY >= 0 && outX < kFieldWidth && outY < kFieldHeight;
+    }
+    return false;
+}
+
+bool ClientApp::AimAtItem(ItemKind kind, int32& outX, int32& outY, uint32& outTick) const {
+    std::lock_guard<std::mutex> guard(_lock);
+    for (const EntityState& entity : _entities) {
+        if (entity.kind != EntityKind::Item) {
+            continue;
+        }
+        if (kind != ItemKind::None && entity.item != kind) {
+            continue;
+        }
+        outX = entity.x;
+        outY = entity.y;
+        outTick = _lastSnapshotTick;
+        return outX >= 0 && outY >= 0 && outX < kFieldWidth && outY < kFieldHeight;
+    }
+    return false;
+}
+
+void ClientApp::SendFire(int32 x, int32 y, uint32 tick) {
+    SessionRef session;
+    {
+        std::lock_guard<std::mutex> guard(_lock);
+        session = _instanceSession;
+    }
+    if (session == nullptr) {
+        Console::Error("not connected to an instance");
+        return;
+    }
+
+    C_Fire fire;
+    fire.aimX = x;
+    fire.aimY = y;
+    fire.clientTick = tick;
+    fire.sequence = _fireSequence.fetch_add(1);
+    session->Send(MakePacket(fire));
+}
+
+uint16 ClientApp::PickTargetCell() const {
+    std::lock_guard<std::mutex> guard(_lock);
+
+    // Randomly, not lowest-index: two bots scanning in the same order would
+    // contest the same cell every time and burn their ammo losing the race,
+    // which is a property of the bot rather than of the game.
+    std::vector<uint16> free;
+    free.reserve(_boardCells.size());
+    for (size_t i = 0; i < _boardCells.size(); ++i) {
+        if (_boardCells[i] == 0xFF) {
+            free.push_back(static_cast<uint16>(i));
+        }
+    }
+    if (free.empty()) {
+        return 0xFFFF;
+    }
+    return free[static_cast<size_t>(Random::Range(0, static_cast<int32>(free.size()) - 1))];
+}
+
+void ClientApp::ScheduleAutoplay() {
+    if (!_autoplay.load() || !_running.load()) {
+        return;
+    }
+
+    if (_waveActive.load() && !_stunned.load() &&
+        (_myAmmo.load() > 0 || _matchConfig.ammoPerWave == kUnlimited)) {
+        int32 x = 0;
+        int32 y = 0;
+        uint32 tick = 0;
+        bool aimed = false;
+
+        // Roughly a third of shots go at an item. Without this the bot only
+        // ever claims cells and the item effects are never exercised at all,
+        // which is most of what there is to get wrong.
+        if (Random::Range(0, 2) == 0) {
+            aimed = AimAtItem(ItemKind::None, x, y, tick);
+        }
+        if (!aimed) {
+            const uint16 cell = PickTargetCell();
+            aimed = cell != 0xFFFF && AimAtCell(cell, x, y, tick);
+        }
+
+        if (aimed) {
+            SendFire(x, y, tick);
+        }
+    }
+
+    // Comfortably above the server's minimum shot interval, so autoplay is
+    // never the thing that trips the rate limit.
+    _timerQueue->DoTimer(150, [this]() { ScheduleAutoplay(); });
+}
+
+std::string ClientApp::FormatBoard() const {
+    std::lock_guard<std::mutex> guard(_lock);
+    if (_boardSpec.width == 0) {
+        return "  (no board yet)";
+    }
+
+    std::string result;
+    for (uint8 y = 0; y < _boardSpec.height; ++y) {
+        result += "    ";
+        for (uint8 x = 0; x < _boardSpec.width; ++x) {
+            const uint8 owner = _boardCells[static_cast<size_t>(y) * _boardSpec.width + x];
+            result += owner == 0xFF ? '.' : static_cast<char>('0' + owner);
+            result += ' ';
+        }
+        result += '\n';
+    }
+    return result;
 }
 
 // ---------------------------------------------------------------------------

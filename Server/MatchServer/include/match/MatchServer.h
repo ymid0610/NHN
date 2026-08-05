@@ -60,7 +60,8 @@ public:
 
     /// Begins a handoff for @p room. Replies arrive asynchronously on the peer
     /// link and end in Room::EnqueueHandoffReady or EnqueueHandoffFailed.
-    void BeginHandoff(const RoomRef& room, const std::vector<proto::RoomMemberInfo>& members);
+    void BeginHandoff(const RoomRef& room, const std::vector<proto::RoomMemberInfo>& members,
+                      const proto::MatchConfig& config);
 
     /// Re-publishes state a reconnecting peer has lost. Without this a chat
     /// server restart would leave every room channel empty until players
@@ -70,7 +71,7 @@ public:
     void StartMaintenanceTimer();
 
 private:
-    /// Drops @p session into a joinable room of @p roomType, creating one if
+    /// Drops @p session into a joinable room of @p mode, creating one if
     /// nothing suitable exists.
     ///
     /// Candidates come from the search index, which lags the rooms themselves —
@@ -78,9 +79,9 @@ private:
     /// than surfacing that race to the player as "room full", a failed attempt
     /// moves on to the next candidate, and running out of candidates means
     /// creating a fresh room.
-    void QuickMatchStep(const ClientSessionRef& session, proto::RoomType roomType,
+    void QuickMatchStep(const ClientSessionRef& session, proto::GameMode mode,
                         Ref<std::vector<RoomId>> candidates, size_t index);
-    void QuickMatchCreate(const ClientSessionRef& session, proto::RoomType roomType);
+    void QuickMatchCreate(const ClientSessionRef& session, proto::GameMode mode);
 
     enum class HandoffPhase : uint8 {
         AwaitingCreate,  // P_InstanceCreate sent, no ack yet
@@ -93,6 +94,8 @@ private:
         InstanceId instanceId = kInvalidInstanceId;
         HandoffPhase phase = HandoffPhase::AwaitingCreate;
         TickCount startedAt = 0;
+        proto::GameMode mode = proto::GameMode::None;
+        proto::MatchConfig config;
         std::vector<proto::RoomMemberInfo> members;
         Weak<PeerSession> instancePeer;
     };

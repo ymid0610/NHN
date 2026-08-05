@@ -7,16 +7,19 @@
 namespace nhn::proto {
 namespace {
 
-// Adding a room shape is a single row here plus an enumerator.
-constexpr std::array<RoomTypeInfo, 2> kRoomTypes = {{
-    {RoomType::Duo, 2, 2, "duo"},
-    {RoomType::Quad, 4, 4, "quad"},
+// Adding a mode is a single row here plus an enumerator.
+//
+//                         board   win  cap  min   ammo options   wave caps
+constexpr std::array<GameModeDef, 3> kGameModes = {{
+    {GameMode::TicTacToe,  3,  3,  3,   2,   2,  {1, 2, 3, 0},   {10, 0}, "tictactoe"},
+    {GameMode::Gomoku9,    9,  9,  4,   4,   2,  {1, 3, 6, 0},   {10, 0}, "gomoku9"},
+    {GameMode::Gomoku15,  15, 15,  5,   4,   2,  {1, 3, 6, 0},   {20, 0}, "gomoku15"},
 }};
 
 }  // namespace
 
-const RoomTypeInfo* FindRoomType(RoomType type) {
-    for (const RoomTypeInfo& info : kRoomTypes) {
+const GameModeDef* FindGameMode(GameMode type) {
+    for (const GameModeDef& info : kGameModes) {
         if (info.type == type) {
             return &info;
         }
@@ -24,34 +27,54 @@ const RoomTypeInfo* FindRoomType(RoomType type) {
     return nullptr;
 }
 
-uint8 RoomCapacity(RoomType type) {
-    const RoomTypeInfo* info = FindRoomType(type);
+uint8 ModeCapacity(GameMode type) {
+    const GameModeDef* info = FindGameMode(type);
     return info != nullptr ? info->capacity : uint8{0};
 }
 
-bool IsValidRoomType(RoomType type) {
-    return FindRoomType(type) != nullptr;
+bool IsValidGameMode(GameMode type) {
+    return FindGameMode(type) != nullptr;
 }
 
-RoomType ParseRoomType(std::string_view text) {
+bool IsAmmoAllowed(GameMode type, uint8 ammoPerWave) {
+    const GameModeDef* info = FindGameMode(type);
+    if (info == nullptr) {
+        return false;
+    }
+    return std::find(info->ammoOptions.begin(), info->ammoOptions.end(), ammoPerWave) !=
+           info->ammoOptions.end();
+}
+
+bool IsWaveLimitAllowed(GameMode type, uint8 waveLimit) {
+    const GameModeDef* info = FindGameMode(type);
+    if (info == nullptr) {
+        return false;
+    }
+    return std::find(info->waveLimitOptions.begin(), info->waveLimitOptions.end(), waveLimit) !=
+           info->waveLimitOptions.end();
+}
+
+GameMode ParseGameMode(std::string_view text) {
     std::string lowered(text);
     std::transform(lowered.begin(), lowered.end(), lowered.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    for (const RoomTypeInfo& info : kRoomTypes) {
+    for (const GameModeDef& info : kGameModes) {
         if (lowered == info.name) {
             return info.type;
         }
     }
-    // Also accept the player count, which is how people actually talk about
-    // these ("make a 4 room").
-    if (lowered == "2") {
-        return RoomType::Duo;
+    // Short forms, because these get typed a lot at a test-client prompt.
+    if (lowered == "ttt" || lowered == "3") {
+        return GameMode::TicTacToe;
     }
-    if (lowered == "4") {
-        return RoomType::Quad;
+    if (lowered == "g9" || lowered == "9") {
+        return GameMode::Gomoku9;
     }
-    return RoomType::None;
+    if (lowered == "g15" || lowered == "15") {
+        return GameMode::Gomoku15;
+    }
+    return GameMode::None;
 }
 
 bool IsCleanUtf8(std::string_view text, uint32 maxLength) {
@@ -136,7 +159,7 @@ const char* ToString(ResultCode code) {
         case ResultCode::WrongPassword: return "WrongPassword";
         case ResultCode::PasswordRequired: return "PasswordRequired";
         case ResultCode::RoomNameInvalid: return "RoomNameInvalid";
-        case ResultCode::RoomTypeInvalid: return "RoomTypeInvalid";
+        case ResultCode::GameModeInvalid: return "GameModeInvalid";
         case ResultCode::RoomNotWaiting: return "RoomNotWaiting";
         case ResultCode::KickCooldown: return "KickCooldown";
         case ResultCode::NotHost: return "NotHost";
@@ -158,8 +181,8 @@ const char* ToString(ResultCode code) {
     return "Unrecognised";
 }
 
-const char* ToString(RoomType type) {
-    const RoomTypeInfo* info = FindRoomType(type);
+const char* ToString(GameMode type) {
+    const GameModeDef* info = FindGameMode(type);
     return info != nullptr ? info->name : "none";
 }
 

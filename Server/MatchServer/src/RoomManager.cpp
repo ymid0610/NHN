@@ -27,10 +27,10 @@ bool ContainsFold(const std::string& haystack, const std::string& needle) {
 
 }  // namespace
 
-RoomRef RoomManager::Create(const std::string& name, RoomType roomType,
+RoomRef RoomManager::Create(const std::string& name, GameMode mode,
                             const std::string& password, ResultCode& outResult) {
-    if (!IsValidRoomType(roomType)) {
-        outResult = ResultCode::RoomTypeInvalid;
+    if (!IsValidGameMode(mode)) {
+        outResult = ResultCode::GameModeInvalid;
         return nullptr;
     }
     if (!IsCleanUtf8(name, kMaxRoomNameLength)) {
@@ -43,7 +43,7 @@ RoomRef RoomManager::Create(const std::string& name, RoomType roomType,
     }
 
     const RoomId roomId = _nextRoomId.fetch_add(1);
-    RoomRef room = std::make_shared<Room>(roomId, name, roomType, password);
+    RoomRef room = std::make_shared<Room>(roomId, name, mode, password);
 
     {
         std::lock_guard<std::mutex> guard(_lock);
@@ -89,7 +89,7 @@ void RoomManager::Search(const C_RoomList& request, S_RoomList& out) const {
         std::lock_guard<std::mutex> guard(_lock);
         matches.reserve(_summaries.size());
         for (const auto& [roomId, summary] : _summaries) {
-            if (request.roomType != RoomType::None && summary.roomType != request.roomType) {
+            if (request.mode != GameMode::None && summary.mode != request.mode) {
                 continue;
             }
             if (request.hideFull && summary.memberCount >= summary.capacity) {
@@ -119,14 +119,14 @@ void RoomManager::Search(const C_RoomList& request, S_RoomList& out) const {
                      matches.begin() + static_cast<ptrdiff_t>(end));
 }
 
-std::vector<RoomId> RoomManager::FindQuickMatchCandidates(RoomType roomType, size_t limit) const {
+std::vector<RoomId> RoomManager::FindQuickMatchCandidates(GameMode mode, size_t limit) const {
     std::vector<const RoomSummary*> matches;
     std::vector<RoomId> result;
 
     std::lock_guard<std::mutex> guard(_lock);
 
     for (const auto& [roomId, summary] : _summaries) {
-        if (summary.roomType != roomType) {
+        if (summary.mode != mode) {
             continue;
         }
         if (summary.state != RoomState::Waiting) {

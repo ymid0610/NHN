@@ -5,7 +5,7 @@ expect hello 5000
 expect chat 5000
 expect voice 5000
 
-room create quad arena
+room create gomoku9 arena
 expect room 5000
 chat global host is up
 

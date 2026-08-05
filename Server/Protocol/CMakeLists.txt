@@ -1,4 +1,5 @@
 add_library(Protocol STATIC
+    src/GameTypes.cpp
     src/Protocol.cpp
 )
 

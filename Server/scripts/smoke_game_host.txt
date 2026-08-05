@@ -1,0 +1,25 @@
+# Plays a full tic-tac-toe match. Pair with smoke_game_joiner.txt.
+#
+# Items are off for this run so the board logic is exercised on its own; the
+# item paths get their own scenario.
+connect
+expect hello 5000
+room create tictactoe duel
+expect room 5000
+
+echo --- host sets the match up ---
+room config rounds=3 ammo=3 waves=10 paper=3,3 items=none
+sleep 500
+
+expect members 2 20000
+room start
+expect ingame 20000
+expect match 10000
+
+echo --- both players shoot at unclaimed cells until the match resolves ---
+autoplay on
+expect gameover 180000
+
+board
+game
+quit

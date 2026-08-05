@@ -1,11 +1,11 @@
-# The locked room 'vault' is the only duo room with a free slot, and it is the
+# The locked room 'vault' is the only tictactoe room with a free slot, and it is the
 # fullest one, so it would be the top candidate if quick match considered it.
 connect
 expect hello 5000
 sleep 2000
 
 echo --- quick match must open its own room, not enter 'vault' ---
-room quick duo
+room quick tictactoe
 expect room 5000
 room info
 

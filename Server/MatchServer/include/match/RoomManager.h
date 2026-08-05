@@ -20,7 +20,7 @@ namespace nhn::match {
 /// queue round-trips.
 class RoomManager {
 public:
-    RoomRef Create(const std::string& name, proto::RoomType roomType, const std::string& password,
+    RoomRef Create(const std::string& name, proto::GameMode mode, const std::string& password,
                    proto::ResultCode& outResult);
 
     RoomRef Find(RoomId roomId) const;
@@ -38,7 +38,7 @@ public:
     ///
     /// Locked rooms are excluded — quick match cannot supply a password — as
     /// are rooms already in or entering a match.
-    std::vector<RoomId> FindQuickMatchCandidates(proto::RoomType roomType, size_t limit) const;
+    std::vector<RoomId> FindQuickMatchCandidates(proto::GameMode mode, size_t limit) const;
 
     int32 Count() const;
 

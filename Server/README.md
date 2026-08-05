@@ -16,7 +16,7 @@ long as the socket.
 | `MatchServer/` | Rooms, search, host, kick, tickets, handoff to an instance |
 | `ChatServer/` | Channel fan-out: global, per-room, per-instance |
 | `VoiceServer/` | UDP relay (SFU). Never decodes audio |
-| `InstanceServer/` | Live matches. Game logic is a stub |
+| `InstanceServer/` | Live matches, and the game itself under `game/` |
 | `TestClient/` | Console client. Every feature as a command, plus script replay |
 | `Tests/` | gtest unit tests. No network |
 | `scripts/` | Launcher scripts and end-to-end scenarios |
@@ -137,10 +137,101 @@ scenarios do not turn into flaky timing guesses.
 | `smoke_quick.txt` | quick match funnels four players into one room |
 | `smoke_quick_overflow.txt` | six duo players become three full rooms, not six empty ones |
 | `smoke_quick_locked_*.txt` | quick match refuses a locked room even as top candidate, which stays reachable by hand |
+| `smoke_game_*.txt` | a full tic-tac-toe match, board logic only |
+| `smoke_game_items_*.txt` | a gomoku match with every item enabled |
 | `smoke_host.txt` + `smoke_join.txt` | full 4-player room to instance handoff, with voice |
 | `smoke_kick_host.txt` + `smoke_kick_joiner.txt` | ready enforcement, kick, rejoin cooldown |
 | `smoke_migrate_host.txt` + `smoke_migrate_joiner.txt` | host migration when the host leaves |
 | `smoke_crash.txt` | the crash path |
+
+## The game
+
+A shooting gallery where the target is a board. A paper sheet zigzags down the
+screen each wave; hitting a cell claims it, and completing a line takes the
+round. Items arc past on parabolas and get in the way.
+
+Everyone shoots the same pass at the same time — a round is a race, not a
+sequence of turns. That is what makes the disruptive items worth having: a stun
+or a paint can costs an opponent real seconds of a contest already in progress.
+
+| Mode | Board | Line | Players | Ammo choices | Wave caps |
+|---|---|---|---|---|---|
+| `tictactoe` | 3×3 | 3 | 2 | 1, 2, 3, ∞ | 10, ∞ |
+| `gomoku9` | 9×9 | 4 | 2–4 | 1, 3, 6, ∞ | 10, ∞ |
+| `gomoku15` | 15×15 | 5 | 2–4 | 1, 3, 6, ∞ | 20, ∞ |
+
+Mode is the room type: quick match is per mode, and a room's rules are fixed
+when it is created. Everything else — rounds, ammo, wave cap, difficulty band,
+which items are on — is a lobby setting the host controls.
+
+Both per-mode columns exist for concrete reasons. A 3×3 board cannot absorb six
+shots per player per wave; the first pass would decide the round. And on 15×15,
+five in a row is statistically unreachable inside ten waves, so that mode gets a
+larger cap rather than a warning the player has to understand.
+
+Difficulty is **cell size**, redrawn each round from the configured band, so it
+means the same thing whatever the board dimensions are.
+
+### Items
+
+| Item | Layer | Effect |
+|---|---|---|
+| Tumbleweed | **blocker** | absorbs the shot |
+| Wanted poster | **target** | decoy: ammo spent, nothing else |
+| Frying pan | item | stuns a random player for the rest of the wave |
+| Balloon | item | shoves nearby entities, including the sheet |
+| Paint can | item | blinds a random player through the *next* wave |
+| Grenade | item | six further shots around it |
+| Speed loader | item | sets the shooter's ammo back to full |
+
+Neither a blocker nor a decoy carries a penalty beyond the wasted shot.
+
+The pan and the paint can may land on the player who shot them. Their victim is
+drawn on the server — letting clients roll would have each of them believe a
+different player got hit.
+
+Item availability narrows with the ammo rule: the pan is out at one shot each
+(losing a wave would be the whole round) and the loader is out at one shot and
+at unlimited (nothing to reload). The narrowed set is computed server-side and
+sent to the lobby, so the UI and the spawner cannot disagree.
+
+### Hit resolution
+
+The client sends **where it aimed and when**. Nothing else.
+
+```
+C_Fire { aimX, aimY, clientTick, sequence }
+```
+
+Because the sheet is moving, a position alone does not identify what was hit —
+so the shot carries the tick the client was displaying, and the server rewinds
+to it. The world keeps 300 ms of history; a claim older than that is clamped
+rather than honoured, so nobody can sit on a packet and take a cell that was
+contested several frames ago.
+
+Order of resolution is blockers, then items, then the sheet. That ordering comes
+from three separate containers rather than a sortable field, which makes it
+impossible to put a target in front of a blocker by getting a number wrong.
+
+Contested cells go to **whoever's packet arrives first**. Resolving by client
+tick instead would let a laggy player retroactively take a cell someone already
+holds, and watching your own mark disappear is worse than losing the race.
+
+A grenade's fragments are ordinary shots through the same pipeline, so "six
+firing events" needed no separate machinery — just a depth cap.
+
+### What this model cannot do
+
+Sending only a position means the server can check that a shot was possible —
+in bounds, in time, ammo available, not stunned, not too fast — but it cannot
+tell a human from an aimbot. Perfect aim and good aim look identical.
+
+That is inherent to the input format, and it is a reasonable trade for an arcade
+game. It is worth being clear that client *authority* would be a much larger
+concession: a client that reports its own hits can claim cells it never hit,
+which in a 9×9 race is a single packet away from an instant win. Responsiveness
+comes from prediction, not from authority — the client shows its own hit
+immediately and the server confirms.
 
 ## Design notes
 
@@ -223,11 +314,34 @@ service-hosted runs cannot wedge. `--no-wait` disables it explicitly.
 
 Try it: `crash` in the test client.
 
+## Playing without a client
+
+There is no Unity client yet, so the test client is the only way to exercise the
+game — which means it has to be able to play it with no renderer at all.
+
+It keeps the board and the last world snapshot, and aims from those:
+
+```
+fire cell 40        aim at a board cell where it was last seen
+fire item grenade   aim at an item
+fire 960 540        raw point in the field
+autoplay on         keep shooting at unclaimed cells and the occasional item
+board               print the grid
+```
+
+`fire cell` does exactly what a real client's aiming would: it works out where
+the cell was in the most recent snapshot and sends **that snapshot's tick**. The
+server rewinds to that moment to judge the shot. So the test client is not a
+special case — it exercises the real lag-compensation path.
+
 ## Not implemented
 
-- **Game logic.** `IGameMode` in `InstanceServer/include/instance/Instance.h` is
-  where it goes; `NullGameMode` is the current placeholder. Instance lifecycle,
-  handoff, tick loop and teardown are done.
+- **Presentation.** The server decides everything that affects the outcome and
+  sends the rest as an event plus a seed: paint splatter shape, ricochet arcs,
+  muzzle flashes and camera shake are the client's to draw.
+- **Tournament modes.** Deferred. The 8- and 16-player brackets would be rows in
+  the mode table plus a bracket object inside the instance holding several
+  concurrent boards.
 - **Real audio.** The servers relay opaque payloads and do not care what is in
   them. Capture, Opus encoding, jitter buffering and playback are the client's
   job. The test client sends synthetic frames at the real rate and counts what

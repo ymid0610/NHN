@@ -18,12 +18,13 @@ void PostToInstance(Instance* instance, Fn&& body) {
 
 }  // namespace
 
-Instance::Instance(InstanceId id, RoomId roomId, RoomType roomType,
+Instance::Instance(InstanceId id, RoomId roomId, GameMode mode, MatchConfig config,
                    const std::vector<RoomMemberInfo>& expected, Ref<IGameMode> gameMode,
                    uint32 joinTimeoutMs, uint32 tickIntervalMs)
     : _id(id),
       _roomId(roomId),
-      _roomType(roomType),
+      _mode(mode),
+      _config(config),
       _joinTimeoutMs(joinTimeoutMs),
       _tickIntervalMs(tickIntervalMs),
       _gameMode(std::move(gameMode)) {
@@ -57,6 +58,15 @@ void Instance::EnqueuePlayerLeft(SessionId sessionId, LeaveReason reason) {
 
 void Instance::EnqueueClose(const std::string& reason) {
     PostToInstance(this, [reason](const InstanceRef& self) { self->HandleClose(reason); });
+}
+
+void Instance::EnqueueFire(SessionId sessionId, const C_Fire& packet) {
+    PostToInstance(this, [sessionId, packet](const InstanceRef& self) {
+        if (self->_state.load(std::memory_order_acquire) != State::Running) {
+            return;
+        }
+        self->_gameMode->OnFire(*self, sessionId, packet);
+    });
 }
 
 void Instance::HandlePlayerConnected(const InstanceSessionRef& session, SessionId sessionId) {

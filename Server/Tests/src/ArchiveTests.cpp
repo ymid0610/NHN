@@ -31,14 +31,14 @@ bool RoundTrip(T& source, T& destination, uint32 bufferSize = 4096) {
 TEST(Archive, RoundTripsScalarsAndStrings) {
     C_RoomCreate source;
     source.name = "arena";
-    source.roomType = RoomType::Quad;
+    source.mode = GameMode::Gomoku9;
     source.password = "hunter2";
 
     C_RoomCreate destination;
     ASSERT_TRUE(RoundTrip(source, destination));
 
     EXPECT_EQ(destination.name, "arena");
-    EXPECT_EQ(destination.roomType, RoomType::Quad);
+    EXPECT_EQ(destination.mode, GameMode::Gomoku9);
     EXPECT_EQ(destination.password, "hunter2");
 }
 
@@ -47,7 +47,7 @@ TEST(Archive, RoundTripsNestedStructsAndVectors) {
     source.result = ResultCode::Ok;
     source.room.roomId = 42;
     source.room.name = "lobby";
-    source.room.roomType = RoomType::Duo;
+    source.room.mode = GameMode::TicTacToe;
     source.room.state = RoomState::Waiting;
     source.room.capacity = 2;
     source.room.hasPassword = true;

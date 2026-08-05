@@ -1,0 +1,16 @@
+# Second player for the match scenario.
+connect
+expect hello 5000
+sleep 1000
+room joinname duel
+expect room 10000
+room ready on
+
+expect ingame 30000
+expect match 10000
+autoplay on
+expect gameover 180000
+
+board
+game
+quit

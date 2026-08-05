@@ -37,6 +37,14 @@ public:
         (void)sessionId;
     }
 
+    /// A player pulled the trigger. Already on the instance's job queue, so the
+    /// mode may treat its own state as single-threaded.
+    virtual void OnFire(Instance& instance, SessionId sessionId, const proto::C_Fire& packet) {
+        (void)instance;
+        (void)sessionId;
+        (void)packet;
+    }
+
     virtual void OnEnd(Instance& instance, const std::string& reason) {
         (void)instance;
         (void)reason;
@@ -68,20 +76,23 @@ public:
         Finished,
     };
 
-    Instance(InstanceId id, RoomId roomId, proto::RoomType roomType,
+    Instance(InstanceId id, RoomId roomId, proto::GameMode mode, proto::MatchConfig config,
              const std::vector<proto::RoomMemberInfo>& expected, Ref<IGameMode> gameMode,
              uint32 joinTimeoutMs, uint32 tickIntervalMs);
 
     void EnqueuePlayerConnected(const InstanceSessionRef& session, SessionId sessionId);
     void EnqueuePlayerLeft(SessionId sessionId, proto::LeaveReason reason);
     void EnqueueClose(const std::string& reason);
+    void EnqueueFire(SessionId sessionId, const proto::C_Fire& packet);
 
     /// Starts the join deadline. Called once the instance is registered.
     void StartJoinTimeout();
 
     InstanceId GetId() const { return _id; }
     RoomId GetRoomId() const { return _roomId; }
-    proto::RoomType GetRoomType() const { return _roomType; }
+    proto::GameMode GetGameMode() const { return _mode; }
+    const proto::MatchConfig& GetConfig() const { return _config; }
+    uint32 GetTickIntervalMs() const { return _tickIntervalMs; }
     State GetState() const { return _state.load(std::memory_order_acquire); }
 
     /// For game modes: broadcast to every connected player.
@@ -104,7 +115,8 @@ private:
 
     const InstanceId _id;
     const RoomId _roomId;
-    const proto::RoomType _roomType;
+    const proto::GameMode _mode;
+    const proto::MatchConfig _config;
     const uint32 _joinTimeoutMs;
     const uint32 _tickIntervalMs;
 

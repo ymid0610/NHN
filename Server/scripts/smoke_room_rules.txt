@@ -4,7 +4,7 @@ expect hello 5000
 expect chat 5000
 
 echo --- create a locked room ---
-room create duo secret hunter2
+room create tictactoe secret hunter2
 expect room 5000
 room info
 
@@ -20,7 +20,7 @@ echo --- room chat works ---
 chat room hello room
 sleep 300
 
-echo --- start must fail: only one player in a duo room ---
+echo --- start must fail: only one player in a tictactoe room ---
 room start
 sleep 300
 
@@ -34,7 +34,7 @@ expect noroom 5000
 room list
 
 echo --- joining a locked room with the wrong password must fail ---
-room create duo secret2 pw
+room create tictactoe secret2 pw
 expect room 5000
 room leave
 expect noroom 5000

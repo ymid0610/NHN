@@ -2,28 +2,128 @@
 
 #include <array>
 
+#include "protocol/GameTypes.h"
 #include "protocol/Types.h"
 #include "protocol/VoicePacket.h"
 
 using namespace nhn;
 using namespace nhn::proto;
 
-TEST(RoomTypes, CapacitiesMatchTheSpecifiedModes) {
-    EXPECT_EQ(RoomCapacity(RoomType::Duo), 2);
-    EXPECT_EQ(RoomCapacity(RoomType::Quad), 4);
-    EXPECT_EQ(RoomCapacity(RoomType::None), 0);
-    EXPECT_TRUE(IsValidRoomType(RoomType::Duo));
-    EXPECT_FALSE(IsValidRoomType(RoomType::None));
-    EXPECT_FALSE(IsValidRoomType(static_cast<RoomType>(99)));
+TEST(GameModes, TableMatchesTheSpecifiedModes) {
+    const GameModeDef* ttt = FindGameMode(GameMode::TicTacToe);
+    ASSERT_NE(ttt, nullptr);
+    EXPECT_EQ(ttt->boardWidth, 3);
+    EXPECT_EQ(ttt->winLength, 3);
+    EXPECT_EQ(ttt->capacity, 2);
+
+    const GameModeDef* g9 = FindGameMode(GameMode::Gomoku9);
+    ASSERT_NE(g9, nullptr);
+    EXPECT_EQ(g9->boardWidth, 9);
+    EXPECT_EQ(g9->winLength, 4);
+    EXPECT_EQ(g9->capacity, 4);
+    EXPECT_EQ(g9->minimumToStart, 2);  // gomoku runs 2-4, unlike tic-tac-toe
+
+    const GameModeDef* g15 = FindGameMode(GameMode::Gomoku15);
+    ASSERT_NE(g15, nullptr);
+    EXPECT_EQ(g15->boardWidth, 15);
+    EXPECT_EQ(g15->winLength, 5);
+
+    EXPECT_FALSE(IsValidGameMode(GameMode::None));
+    EXPECT_FALSE(IsValidGameMode(static_cast<GameMode>(99)));
 }
 
-TEST(RoomTypes, ParsesNamesAndPlayerCounts) {
-    EXPECT_EQ(ParseRoomType("duo"), RoomType::Duo);
-    EXPECT_EQ(ParseRoomType("DUO"), RoomType::Duo);
-    EXPECT_EQ(ParseRoomType("quad"), RoomType::Quad);
-    EXPECT_EQ(ParseRoomType("2"), RoomType::Duo);
-    EXPECT_EQ(ParseRoomType("4"), RoomType::Quad);
-    EXPECT_EQ(ParseRoomType("nonsense"), RoomType::None);
+TEST(GameModes, AmmoOptionsDifferPerMode) {
+    // A 3x3 board cannot absorb six shots per player per wave — the first pass
+    // would decide the round — so tic-tac-toe offers a tighter range.
+    EXPECT_TRUE(IsAmmoAllowed(GameMode::TicTacToe, 2));
+    EXPECT_FALSE(IsAmmoAllowed(GameMode::TicTacToe, 6));
+    EXPECT_TRUE(IsAmmoAllowed(GameMode::Gomoku9, 6));
+    EXPECT_FALSE(IsAmmoAllowed(GameMode::Gomoku9, 2));
+
+    EXPECT_TRUE(IsAmmoAllowed(GameMode::TicTacToe, kUnlimited));
+    EXPECT_TRUE(IsAmmoAllowed(GameMode::Gomoku15, kUnlimited));
+}
+
+TEST(GameModes, LargerBoardsGetALargerWaveCap) {
+    // Five in a row on 15x15 is statistically unreachable inside ten waves, so
+    // that mode offers a bigger cap rather than producing scoreless rounds.
+    EXPECT_TRUE(IsWaveLimitAllowed(GameMode::Gomoku9, 10));
+    EXPECT_FALSE(IsWaveLimitAllowed(GameMode::Gomoku9, 20));
+    EXPECT_TRUE(IsWaveLimitAllowed(GameMode::Gomoku15, 20));
+    EXPECT_FALSE(IsWaveLimitAllowed(GameMode::Gomoku15, 10));
+}
+
+TEST(GameModes, ParsesNamesAndShortForms) {
+    EXPECT_EQ(ParseGameMode("tictactoe"), GameMode::TicTacToe);
+    EXPECT_EQ(ParseGameMode("TicTacToe"), GameMode::TicTacToe);
+    EXPECT_EQ(ParseGameMode("ttt"), GameMode::TicTacToe);
+    EXPECT_EQ(ParseGameMode("gomoku9"), GameMode::Gomoku9);
+    EXPECT_EQ(ParseGameMode("g9"), GameMode::Gomoku9);
+    EXPECT_EQ(ParseGameMode("15"), GameMode::Gomoku15);
+    EXPECT_EQ(ParseGameMode("nonsense"), GameMode::None);
+}
+
+TEST(MatchConfig, ClampsIllegalCombinationsRatherThanRejecting) {
+    MatchConfig config;
+    config.rounds = 4;          // only 3, 5, 7 exist
+    config.ammoPerWave = 6;     // not offered for tic-tac-toe
+    config.waveLimit = 99;      // not offered anywhere
+    config.paperSizeMin = 9;    // out of range
+    config.paperSizeMax = 0;
+
+    EXPECT_FALSE(ClampMatchConfig(GameMode::TicTacToe, config));
+
+    EXPECT_EQ(config.rounds, 3);
+    EXPECT_TRUE(IsAmmoAllowed(GameMode::TicTacToe, config.ammoPerWave));
+    EXPECT_TRUE(IsWaveLimitAllowed(GameMode::TicTacToe, config.waveLimit));
+    EXPECT_GE(config.paperSizeMin, kMinPaperSize);
+    EXPECT_LE(config.paperSizeMax, kMaxPaperSize);
+    EXPECT_LE(config.paperSizeMin, config.paperSizeMax);
+}
+
+TEST(MatchConfig, AcceptsAValidCombinationUnchanged) {
+    MatchConfig config;
+    config.rounds = 5;
+    config.ammoPerWave = 6;
+    config.waveLimit = 10;
+    config.paperSizeMin = 2;
+    config.paperSizeMax = 4;
+    config.itemMask = kAllItemsMask;
+
+    EXPECT_TRUE(ClampMatchConfig(GameMode::Gomoku9, config));
+    EXPECT_EQ(config.rounds, 5);
+    EXPECT_EQ(config.ammoPerWave, 6);
+}
+
+TEST(Items, PoolNarrowsToWhatTheAmmoRuleAllows) {
+    // With a single shot each, losing a wave to a frying pan is the whole
+    // round, and there is nothing to reload.
+    const uint32 single = EffectiveItemMask(kAllItemsMask, 1);
+    EXPECT_EQ(single & ItemBit(ItemKind::FryingPan), 0u);
+    EXPECT_EQ(single & ItemBit(ItemKind::SpeedLoader), 0u);
+    EXPECT_NE(single & ItemBit(ItemKind::Grenade), 0u);
+
+    // Unlimited ammo makes a reload meaningless, but the pan is fine.
+    const uint32 unlimited = EffectiveItemMask(kAllItemsMask, kUnlimited);
+    EXPECT_EQ(unlimited & ItemBit(ItemKind::SpeedLoader), 0u);
+    EXPECT_NE(unlimited & ItemBit(ItemKind::FryingPan), 0u);
+
+    const uint32 plenty = EffectiveItemMask(kAllItemsMask, 6);
+    EXPECT_NE(plenty & ItemBit(ItemKind::SpeedLoader), 0u);
+    EXPECT_NE(plenty & ItemBit(ItemKind::FryingPan), 0u);
+
+    // Narrowing never adds anything the host had switched off.
+    const uint32 onlyBalloon = EffectiveItemMask(ItemBit(ItemKind::Balloon), 6);
+    EXPECT_EQ(onlyBalloon, ItemBit(ItemKind::Balloon));
+}
+
+TEST(Items, LayersPutBlockersInFrontAndDecoysBehind) {
+    // The tumbleweed has to be tested before anything else, and the decoy has
+    // to sit with the targets or it stops being a convincing mistake.
+    EXPECT_EQ(FindItem(ItemKind::Tumbleweed)->layer, HitLayer::Blocker);
+    EXPECT_EQ(FindItem(ItemKind::WantedPoster)->layer, HitLayer::Target);
+    EXPECT_EQ(FindItem(ItemKind::Grenade)->layer, HitLayer::Item);
+    EXPECT_EQ(FindItem(ItemKind::Balloon)->layer, HitLayer::Item);
 }
 
 TEST(TextValidation, AcceptsPlainAndMultibyteText) {

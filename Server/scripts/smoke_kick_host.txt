@@ -1,7 +1,7 @@
 # Host side of the kick scenario. Pair with smoke_kick_joiner.txt.
 connect
 expect hello 5000
-room create duo kickroom
+room create tictactoe kickroom
 expect room 5000
 expect members 2 20000
 

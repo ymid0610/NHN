@@ -121,6 +121,24 @@ private:
     void RegisterMatchHandlers();
     void RegisterChatHandlers();
     void RegisterInstanceHandlers();
+    void RegisterGameHandlers();
+
+    /// Converts a board cell into the point it currently occupies, using the
+    /// most recent snapshot.
+    ///
+    /// This is exactly the calculation a real client's aiming would do, and it
+    /// is why the fire packet carries the snapshot's tick rather than "now":
+    /// the shot is aimed at where the sheet was seen, and the server rewinds to
+    /// that moment to judge it.
+    bool AimAtCell(uint16 cellIndex, int32& outX, int32& outY, uint32& outTick) const;
+    bool AimAtItem(proto::ItemKind kind, int32& outX, int32& outY, uint32& outTick) const;
+    void SendFire(int32 x, int32 y, uint32 tick);
+
+    void ScheduleAutoplay();
+    /// Lowest-numbered cell nobody has claimed yet, or kNoCell.
+    uint16 PickTargetCell() const;
+
+    std::string FormatBoard() const;
 
     void ConnectMatch(const std::string& host, uint16 port);
     void ConnectChat(const std::string& host, uint16 port, const std::string& ticket);
@@ -154,6 +172,11 @@ private:
     void CommandChat(const std::vector<std::string>& args, const std::string& rest);
     void CommandVoice(const std::vector<std::string>& args);
     void CommandStat() const;
+    void CommandFire(const std::vector<std::string>& args);
+    void CommandBoard() const;
+    void CommandGame() const;
+    void CommandConfig(const std::vector<std::string>& args);
+    void CommandAutoplay(const std::vector<std::string>& args);
     bool CommandExpect(const std::vector<std::string>& args);
 
     /// Polls @p predicate until it holds or the deadline passes. Scripts use
@@ -198,6 +221,27 @@ private:
     /// Bumped on every S_RoomList, so a caller can tell a fresh reply from the
     /// previous one.
     std::atomic<uint32> _roomListVersion{0};
+
+    // -- game state ---------------------------------------------------------
+    // There is no renderer here, so the client keeps just enough of the world
+    // to aim: the board, and the last snapshot of where everything was.
+    proto::BoardSpec _boardSpec;
+    proto::MatchConfig _matchConfig;
+    std::vector<uint8> _boardCells;
+    std::vector<proto::EntityState> _entities;
+    uint32 _lastSnapshotTick = 0;
+
+    std::atomic<uint8> _mySlot{0xFF};
+    std::atomic<uint8> _myAmmo{0};
+    std::atomic<uint8> _roundIndex{0};
+    std::atomic<uint8> _myScore{0};
+    std::atomic<bool> _matchSetupSeen{false};
+    std::atomic<bool> _waveActive{false};
+    std::atomic<bool> _gameOver{false};
+    std::atomic<bool> _stunned{false};
+    std::atomic<bool> _autoplay{false};
+    std::atomic<uint16> _fireSequence{1};
+    std::atomic<uint32> _cellsClaimedByMe{0};
 
     std::atomic<uint16> _voiceSequence{0};
     std::atomic<uint64> _voiceFramesSent{0};

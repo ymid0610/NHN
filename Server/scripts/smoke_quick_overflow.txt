@@ -1,9 +1,9 @@
-# Run six of these against duo (capacity 2): quick match should fill one room to
+# Run six of these against tictactoe (capacity 2): quick match should fill one room to
 # capacity, then open the next, giving three full rooms rather than six rooms
 # with one player each.
 connect
 expect hello 5000
-room quick duo
+room quick tictactoe
 expect room 5000
 sleep 4000
 room info

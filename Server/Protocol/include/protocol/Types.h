@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -9,12 +10,18 @@
 
 namespace nhn::proto {
 
-/// Room shapes. Capacity is data, not code — adding a six-player mode is one
-/// row in the table in Protocol.cpp plus one enumerator here.
-enum class RoomType : uint8 {
+/// A room's game mode. Room capacity, board shape and the settings the host may
+/// pick all come from one table in Protocol.cpp, so a new mode is a row plus an
+/// enumerator here.
+///
+/// Mode and room type are the same thing on purpose: there is one game, quick
+/// match is per mode, and keeping them separate would only mean the matchmaker
+/// had to read into a room's settings to answer "is this the mode I want".
+enum class GameMode : uint8 {
     None = 0,
-    Duo = 1,   // 2 players
-    Quad = 2,  // 4 players
+    TicTacToe = 1,  // 3x3,   three in a row, 2 players
+    Gomoku9 = 2,    // 9x9,   four in a row,  2-4 players
+    Gomoku15 = 3,   // 15x15, five in a row,  2-4 players
 };
 
 enum class RoomState : uint8 {
@@ -69,7 +76,7 @@ enum class ResultCode : uint16 {
     WrongPassword = 204,
     PasswordRequired = 205,
     RoomNameInvalid = 206,
-    RoomTypeInvalid = 207,
+    GameModeInvalid = 207,
     RoomNotWaiting = 208,
     KickCooldown = 209,
 
@@ -95,29 +102,58 @@ enum class ResultCode : uint16 {
 
 /// Short diagnostic name, used by the test client and server logs.
 const char* ToString(ResultCode code);
-const char* ToString(RoomType type);
+const char* ToString(GameMode type);
 const char* ToString(RoomState state);
 const char* ToString(ChannelType type);
 const char* ToString(ServerType type);
 const char* ToString(LeaveReason reason);
 
-/// Static description of a room shape.
-struct RoomTypeInfo {
-    RoomType type = RoomType::None;
+/// Sentinel for both settings below. Ammo of zero is unlimited; a wave cap of
+/// zero means the round runs until the board resolves itself.
+inline constexpr uint8 kUnlimited = 0;
+
+/// Everything that varies between modes, in one place.
+struct GameModeDef {
+    GameMode type = GameMode::None;
+
+    uint8 boardWidth = 0;
+    uint8 boardHeight = 0;
+    /// Marks in a row needed to take the round.
+    uint8 winLength = 0;
+
     uint8 capacity = 0;
-    /// Players required before the host may start. Equal to capacity today —
-    /// arcade modes are full-lobby — but kept separate so a mode can allow
-    /// starting short-handed without touching the start logic.
+    /// Players required before the host may start. Gomoku runs 2-4, so this is
+    /// genuinely below capacity there.
     uint8 minimumToStart = 0;
+
+    /// Ammo per wave, as offered in the lobby. kUnlimited allowed.
+    ///
+    /// Per-mode because a 3x3 board cannot absorb six shots per player per
+    /// wave — the first pass would decide the entire round.
+    std::array<uint8, 4> ammoOptions{};
+
+    /// Wave caps offered in the lobby. kUnlimited allowed.
+    ///
+    /// Also per-mode, for a concrete reason: on 15x15 a low cap makes five in a
+    /// row statistically unreachable and every round ends scoreless. Bigger
+    /// boards get a bigger cap rather than a warning the player has to
+    /// understand.
+    std::array<uint8, 2> waveLimitOptions{};
+
     const char* name = "";
 };
 
-const RoomTypeInfo* FindRoomType(RoomType type);
-uint8 RoomCapacity(RoomType type);
-bool IsValidRoomType(RoomType type);
+const GameModeDef* FindGameMode(GameMode type);
+uint8 ModeCapacity(GameMode type);
+bool IsValidGameMode(GameMode type);
 
-/// Parses "duo"/"2" style text from the test client.
-RoomType ParseRoomType(std::string_view text);
+/// True when the value is one the mode actually offers. The lobby is sent the
+/// options, but nothing stops a crafted packet from asking for something else.
+bool IsAmmoAllowed(GameMode type, uint8 ammoPerWave);
+bool IsWaveLimitAllowed(GameMode type, uint8 waveLimit);
+
+/// Parses "gomoku9"/"g9"/"9" style text from the test client.
+GameMode ParseGameMode(std::string_view text);
 
 /// Rejects control characters and validates UTF-8. Applied to every
 /// client-supplied string before it is stored or echoed to other players;
@@ -147,7 +183,7 @@ struct RoomMemberInfo {
 struct RoomSummary {
     RoomId roomId = kInvalidRoomId;
     std::string name;
-    RoomType roomType = RoomType::None;
+    GameMode mode = GameMode::None;
     RoomState state = RoomState::Waiting;
     uint8 memberCount = 0;
     uint8 capacity = 0;
@@ -157,7 +193,7 @@ struct RoomSummary {
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & roomId & name & roomType & state & memberCount & capacity & hasPassword &
+        ar & roomId & name & mode & state & memberCount & capacity & hasPassword &
             hostNickname;
     }
 };
@@ -165,7 +201,7 @@ struct RoomSummary {
 struct RoomDetail {
     RoomId roomId = kInvalidRoomId;
     std::string name;
-    RoomType roomType = RoomType::None;
+    GameMode mode = GameMode::None;
     RoomState state = RoomState::Waiting;
     uint8 capacity = 0;
     bool hasPassword = false;
@@ -174,7 +210,7 @@ struct RoomDetail {
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & roomId & name & roomType & state & capacity & hasPassword & hostSessionId & members;
+        ar & roomId & name & mode & state & capacity & hasPassword & hostSessionId & members;
     }
 };
 

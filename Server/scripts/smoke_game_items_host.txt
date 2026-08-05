@@ -1,0 +1,22 @@
+# Gomoku on 9x9 with every item enabled, to exercise the effect paths:
+# blocking, decoys, the stun, the blast, blinding, grenade fragments and the
+# reload. Pair with smoke_game_items_joiner.txt.
+connect
+expect hello 5000
+room create gomoku9 brawl
+expect room 5000
+
+room config rounds=3 ammo=6 waves=10 paper=4,5 items=all
+sleep 500
+
+expect members 2 20000
+room start
+expect ingame 20000
+expect match 10000
+
+autoplay on
+expect gameover 240000
+
+board
+game
+quit

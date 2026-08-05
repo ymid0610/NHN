@@ -1,5 +1,7 @@
 #include "instance/InstanceServer.h"
 
+#include "instance/game/ShootingGameMode.h"
+
 namespace nhn::instance {
 
 using namespace proto;
@@ -49,8 +51,9 @@ void InstanceSession::OnRecvPacket(uint8* buffer, int32 length) {
 InstanceRef InstanceManager::Create(const P_InstanceCreate& request, uint32 joinTimeoutMs,
                                     uint32 tickIntervalMs) {
     InstanceRef instance = std::make_shared<Instance>(
-        request.instanceId, request.roomId, request.roomType, request.members,
-        std::make_shared<NullGameMode>(), joinTimeoutMs, tickIntervalMs);
+        request.instanceId, request.roomId, request.mode, request.config, request.members,
+        std::make_shared<ShootingGameMode>(request.mode, request.config, tickIntervalMs),
+        joinTimeoutMs, tickIntervalMs);
 
     std::lock_guard<std::mutex> guard(_lock);
     _instances[request.instanceId] = instance;
@@ -132,6 +135,14 @@ void InstanceServer::RegisterClientHandlers() {
             session->Authenticate(entry.sessionId, entry.nickname);
             instance->EnqueuePlayerConnected(session, entry.sessionId);
         });
+
+    _clientDispatcher.On<C_Fire>([](const InstanceSessionRef& session, const C_Fire& packet) {
+        if (InstanceRef instance = GInstanceManager->Find(session->GetInstanceId())) {
+            // Posted to the instance's queue, where the game mode has exclusive
+            // access to its own state.
+            instance->EnqueueFire(session->GetSessionId(), packet);
+        }
+    });
 
     _clientDispatcher.On<C_InstLeave>([](const InstanceSessionRef& session, const C_InstLeave&) {
         if (InstanceRef instance = GInstanceManager->Find(session->GetInstanceId())) {

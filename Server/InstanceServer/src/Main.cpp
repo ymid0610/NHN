@@ -16,7 +16,10 @@ int main(int argc, char** argv) {
     InstanceServer::Settings settings;
     settings.clientPort = config.GetPort("client-port", 7850);
     settings.joinTimeoutMs = static_cast<uint32>(config.GetInt("join-timeout-ms", 12000));
-    settings.tickIntervalMs = static_cast<uint32>(config.GetInt("tick-interval-ms", 100));
+    // 20 ms, not 100. The rewind window is quantised to the tick, and at 100 ms
+    // a fast-moving sheet crosses several cells between samples, which makes
+    // hit resolution visibly unfair.
+    settings.tickIntervalMs = static_cast<uint32>(config.GetInt("tick-interval-ms", 20));
     settings.publicHost = config.GetString("public-host", "127.0.0.1");
     settings.capacity = config.GetInt("capacity", 0);
 

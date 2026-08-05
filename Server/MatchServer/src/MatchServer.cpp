@@ -113,7 +113,7 @@ void MatchServer::RegisterClientHandlers() {
             }
 
             ResultCode result = ResultCode::Ok;
-            RoomRef room = GRoomManager->Create(packet.name, packet.roomType, packet.password,
+            RoomRef room = GRoomManager->Create(packet.name, packet.mode, packet.password,
                                                 result);
             if (room == nullptr) {
                 S_RoomCreateAck ack;
@@ -123,7 +123,7 @@ void MatchServer::RegisterClientHandlers() {
             }
 
             LOG_INFO("session {} created room {} '{}' ({}, {})", session->GetSessionId(),
-                     room->GetId(), packet.name, ToString(packet.roomType),
+                     room->GetId(), packet.name, ToString(packet.mode),
                      room->HasPassword() ? "locked" : "open");
 
             // The creator joins through the normal path, which makes them host
@@ -165,21 +165,21 @@ void MatchServer::RegisterClientHandlers() {
                 session->SendPacket(ack);
                 return;
             }
-            if (!IsValidRoomType(packet.roomType)) {
+            if (!IsValidGameMode(packet.mode)) {
                 S_RoomJoinAck ack;
-                ack.result = ResultCode::RoomTypeInvalid;
+                ack.result = ResultCode::GameModeInvalid;
                 session->SendPacket(ack);
                 return;
             }
 
             auto candidates = std::make_shared<std::vector<RoomId>>(
                 GRoomManager->FindQuickMatchCandidates(
-                    packet.roomType, static_cast<size_t>(_settings.quickMatchAttempts)));
+                    packet.mode, static_cast<size_t>(_settings.quickMatchAttempts)));
 
             LOG_DEBUG("quick match: session {} wants {}, {} candidate(s)",
-                      session->GetSessionId(), ToString(packet.roomType), candidates->size());
+                      session->GetSessionId(), ToString(packet.mode), candidates->size());
 
-            QuickMatchStep(session, packet.roomType, candidates, 0);
+            QuickMatchStep(session, packet.mode, candidates, 0);
         });
 
     _clientDispatcher.On<C_RoomLeave>([](const ClientSessionRef& session, const C_RoomLeave&) {
@@ -218,6 +218,16 @@ void MatchServer::RegisterClientHandlers() {
             room->EnqueueReady(session->GetSessionId(), packet.ready);
         });
 
+    _clientDispatcher.On<C_RoomSetConfig>(
+        [](const ClientSessionRef& session, const C_RoomSetConfig& packet) {
+            RoomRef room = RequireRoom(session);
+            if (room == nullptr) {
+                session->SendError(ResultCode::NotInRoom);
+                return;
+            }
+            room->EnqueueSetConfig(session->GetSessionId(), packet.config);
+        });
+
     _clientDispatcher.On<C_RoomStart>([](const ClientSessionRef& session, const C_RoomStart&) {
         RoomRef room = RequireRoom(session);
         if (room == nullptr) {
@@ -234,7 +244,7 @@ void MatchServer::RegisterClientHandlers() {
 // Quick match
 // ---------------------------------------------------------------------------
 
-void MatchServer::QuickMatchStep(const ClientSessionRef& session, RoomType roomType,
+void MatchServer::QuickMatchStep(const ClientSessionRef& session, GameMode mode,
                                  Ref<std::vector<RoomId>> candidates, size_t index) {
     // A player who disconnected or joined a room by hand while this was in
     // flight should not be dragged into one.
@@ -243,7 +253,7 @@ void MatchServer::QuickMatchStep(const ClientSessionRef& session, RoomType roomT
     }
 
     if (index >= candidates->size()) {
-        QuickMatchCreate(session, roomType);
+        QuickMatchCreate(session, mode);
         return;
     }
 
@@ -251,27 +261,27 @@ void MatchServer::QuickMatchStep(const ClientSessionRef& session, RoomType roomT
     RoomRef room = GRoomManager->Find(roomId);
     if (room == nullptr) {
         // Closed since the index was read.
-        QuickMatchStep(session, roomType, candidates, index + 1);
+        QuickMatchStep(session, mode, candidates, index + 1);
         return;
     }
 
     Ref<MatchServer> self = std::static_pointer_cast<MatchServer>(shared_from_this());
-    room->EnqueueJoin(session, "", [self, session, roomType, candidates, index](ResultCode result) {
+    room->EnqueueJoin(session, "", [self, session, mode, candidates, index](ResultCode result) {
         if (result == ResultCode::Ok) {
             return;  // The room already sent the join ack with the roster.
         }
         // Full, started, or the player is on that room's kick cooldown — all
         // ordinary outcomes for an automatic match. Try the next one.
-        self->QuickMatchStep(session, roomType, candidates, index + 1);
+        self->QuickMatchStep(session, mode, candidates, index + 1);
     });
 }
 
-void MatchServer::QuickMatchCreate(const ClientSessionRef& session, RoomType roomType) {
+void MatchServer::QuickMatchCreate(const ClientSessionRef& session, GameMode mode) {
     const std::string name =
-        std::format("{} #{}", ToString(roomType), _quickMatchCounter.fetch_add(1));
+        std::format("{} #{}", ToString(mode), _quickMatchCounter.fetch_add(1));
 
     ResultCode result = ResultCode::Ok;
-    RoomRef room = GRoomManager->Create(name, roomType, "", result);
+    RoomRef room = GRoomManager->Create(name, mode, "", result);
     if (room == nullptr) {
         S_RoomJoinAck ack;
         ack.result = result;
@@ -461,9 +471,9 @@ void MatchServer::ResyncPeer(const PeerSessionRef& peer) {
 // Handoff
 // ---------------------------------------------------------------------------
 
-void MatchServer::BeginHandoff(const RoomRef& room,
-                               const std::vector<RoomMemberInfo>& members) {
-    PostToServer(this, [room, members](const Ref<MatchServer>& self) {
+void MatchServer::BeginHandoff(const RoomRef& room, const std::vector<RoomMemberInfo>& members,
+                               const MatchConfig& config) {
+    PostToServer(this, [room, members, config](const Ref<MatchServer>& self) {
         PeerSessionRef peer = GPeerRegistry->PickInstanceServer();
         if (peer == nullptr) {
             room->EnqueueHandoffFailed(ResultCode::NoInstanceServer);
@@ -477,6 +487,8 @@ void MatchServer::BeginHandoff(const RoomRef& room,
         pending.instanceId = instanceId;
         pending.phase = HandoffPhase::AwaitingCreate;
         pending.startedAt = NowTick();
+        pending.mode = room->GetGameMode();
+        pending.config = config;
         pending.members = members;
         pending.instancePeer = peer;
         self->_pendingHandoffs[instanceId] = std::move(pending);
@@ -486,7 +498,9 @@ void MatchServer::BeginHandoff(const RoomRef& room,
         P_InstanceCreate create;
         create.instanceId = instanceId;
         create.roomId = room->GetId();
-        create.roomType = room->GetRoomType();
+        create.mode = room->GetGameMode();
+        // Already clamped by the room, so the instance can take it as given.
+        create.config = config;
         create.members = members;
         peer->SendPacket(create);
     });

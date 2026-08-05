@@ -1,5 +1,6 @@
 #pragma once
 
+#include "protocol/GameTypes.h"
 #include "protocol/Types.h"
 
 namespace nhn::proto {
@@ -36,6 +37,8 @@ enum class PacketId : uint16 {
     C_RoomStart = 1022,
     S_RoomStartAck = 1023,
     C_QuickMatch = 1024,
+    C_RoomSetConfig = 1025,
+    S_RoomConfigChanged = 1026,
 
     S_RoomMemberJoined = 1030,
     S_RoomMemberLeft = 1031,
@@ -62,6 +65,22 @@ enum class PacketId : uint16 {
     S_InstMemberLeft = 3004,
     S_InstStart = 3005,
     S_InstEnd = 3006,
+
+    // -- the game -----------------------------------------------------------
+    C_Fire = 3100,
+    S_FireRejected = 3101,
+    S_ShotResolved = 3102,
+    S_MatchSetup = 3110,
+    S_RoundStart = 3111,
+    S_RoundEnd = 3112,
+    S_WaveStart = 3113,
+    S_WaveEnd = 3114,
+    S_WorldSnapshot = 3115,
+    S_CellClaimed = 3116,
+    S_ItemTriggered = 3117,
+    S_StatusChanged = 3118,
+    S_AmmoChanged = 3119,
+    S_GameOver = 3120,
 
     // -- control plane ------------------------------------------------------
     P_ServerHello = 4000,
@@ -162,14 +181,14 @@ struct S_Error {
 struct C_RoomCreate {
     NHN_PACKET(C_RoomCreate);
     std::string name;
-    RoomType roomType = RoomType::None;
+    GameMode mode = GameMode::None;
     /// Empty means an open room. A non-empty password makes the room locked but
     /// still listed.
     std::string password;
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & name & roomType & password;
+        ar & name & mode & password;
     }
 };
 
@@ -186,8 +205,8 @@ struct S_RoomCreateAck {
 
 struct C_RoomList {
     NHN_PACKET(C_RoomList);
-    /// RoomType::None means "any".
-    RoomType roomType = RoomType::None;
+    /// GameMode::None means "any".
+    GameMode mode = GameMode::None;
     std::string nameFilter;
     bool hideFull = false;
     bool hideLocked = false;
@@ -196,7 +215,7 @@ struct C_RoomList {
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & roomType & nameFilter & hideFull & hideLocked & page & pageSize;
+        ar & mode & nameFilter & hideFull & hideLocked & page & pageSize;
     }
 };
 
@@ -316,11 +335,39 @@ struct S_RoomStartAck {
 /// member count in that ack.
 struct C_QuickMatch {
     NHN_PACKET(C_QuickMatch);
-    RoomType roomType = RoomType::None;
+    GameMode mode = GameMode::None;
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & roomType;
+        ar & mode;
+    }
+};
+
+/// Host-only. The server clamps whatever arrives to something the mode allows
+/// rather than rejecting it, then broadcasts the result.
+struct C_RoomSetConfig {
+    NHN_PACKET(C_RoomSetConfig);
+    MatchConfig config;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & config;
+    }
+};
+
+struct S_RoomConfigChanged {
+    NHN_PACKET(S_RoomConfigChanged);
+    MatchConfig config;
+    /// Items that will actually spawn under these settings. Sent so the lobby
+    /// UI and the spawner cannot disagree.
+    uint32 effectiveItemMask = 0;
+    /// False when the request had to be adjusted, so the sender can tell its
+    /// choice did not stick.
+    bool accepted = true;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & config & effectiveItemMask & accepted;
     }
 };
 
@@ -562,6 +609,204 @@ struct S_InstEnd {
 };
 
 // ===========================================================================
+// the game
+//
+// The client sends where it aimed and when. Everything else — what was there at
+// that moment, who got the cell, what the item did — is decided here.
+// ===========================================================================
+
+/// @param aimX,aimY  point on the target plane, in the 1920x1080 field space
+/// @param clientTick simulation tick the client was displaying when it fired;
+///                   the server rewinds to it, bounded by kMaxRewindMs
+/// @param sequence   echoed back so the client can reconcile its own prediction
+struct C_Fire {
+    NHN_PACKET(C_Fire);
+    int32 aimX = 0;
+    int32 aimY = 0;
+    uint32 clientTick = 0;
+    uint16 sequence = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & aimX & aimY & clientTick & sequence;
+    }
+};
+
+struct S_FireRejected {
+    NHN_PACKET(S_FireRejected);
+    uint16 sequence = 0;
+    ResultCode result = ResultCode::InvalidRequest;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & sequence & result;
+    }
+};
+
+struct S_ShotResolved {
+    NHN_PACKET(S_ShotResolved);
+    SessionId shooter = kInvalidSessionId;
+    uint16 sequence = 0;
+    HitKind kind = HitKind::Miss;
+    int32 hitX = 0;
+    int32 hitY = 0;
+    uint32 entityId = 0;
+    /// Board cell when kind is Cell or CellTaken, otherwise 0xFFFF.
+    uint16 cellIndex = 0xFFFF;
+    /// True when this came from a grenade fragment or a ricochet rather than a
+    /// trigger pull, so the client does not animate a muzzle flash for it.
+    bool derived = false;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & shooter & sequence & kind & hitX & hitY & entityId & cellIndex & derived;
+    }
+};
+
+/// Sent once when the match begins, so a client knows the shape of everything
+/// that follows.
+struct S_MatchSetup {
+    NHN_PACKET(S_MatchSetup);
+    GameMode mode = GameMode::None;
+    MatchConfig config;
+    BoardSpec board;
+    uint32 fieldWidth = 0;
+    uint32 fieldHeight = 0;
+    uint32 waveDurationMs = 0;
+    std::vector<RoomMemberInfo> players;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & mode & config & board & fieldWidth & fieldHeight & waveDurationMs & players;
+    }
+};
+
+struct S_RoundStart {
+    NHN_PACKET(S_RoundStart);
+    uint8 roundIndex = 0;
+    uint8 roundCount = 0;
+    /// Cell size for this round, drawn from the configured range.
+    uint8 paperSize = 0;
+    uint64 roundSeed = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & roundIndex & roundCount & paperSize & roundSeed;
+    }
+};
+
+struct S_RoundEnd {
+    NHN_PACKET(S_RoundEnd);
+    uint8 roundIndex = 0;
+    /// 0xFF when the round ended with no line completed; nobody scores.
+    uint8 winnerSlot = 0xFF;
+    std::vector<PlayerScore> scores;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & roundIndex & winnerSlot & scores;
+    }
+};
+
+struct S_WaveStart {
+    NHN_PACKET(S_WaveStart);
+    uint16 waveIndex = 0;
+    uint32 startTick = 0;
+    uint32 endTick = 0;
+    uint8 ammo = 0;  // kUnlimited allowed
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & waveIndex & startTick & endTick & ammo;
+    }
+};
+
+struct S_WaveEnd {
+    NHN_PACKET(S_WaveEnd);
+    uint16 waveIndex = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & waveIndex;
+    }
+};
+
+struct S_WorldSnapshot {
+    NHN_PACKET(S_WorldSnapshot);
+    uint32 tick = 0;
+    std::vector<EntityState> entities;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & tick & entities;
+    }
+};
+
+struct S_CellClaimed {
+    NHN_PACKET(S_CellClaimed);
+    uint16 cellIndex = 0;
+    uint8 ownerSlot = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & cellIndex & ownerSlot;
+    }
+};
+
+/// An item went off. The server decides who it landed on; the seed lets each
+/// client draw the splatter or the ricochet arc without needing the geometry.
+struct S_ItemTriggered {
+    NHN_PACKET(S_ItemTriggered);
+    ItemKind item = ItemKind::None;
+    uint32 entityId = 0;
+    SessionId instigator = kInvalidSessionId;
+    /// 0xFF when the item does not single anyone out.
+    uint8 victimSlot = 0xFF;
+    uint32 seed = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & item & entityId & instigator & victimSlot & seed;
+    }
+};
+
+struct S_StatusChanged {
+    NHN_PACKET(S_StatusChanged);
+    uint8 slot = 0;
+    StatusFlags flags = StatusFlags::None;
+    uint32 untilTick = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & slot & flags & untilTick;
+    }
+};
+
+struct S_AmmoChanged {
+    NHN_PACKET(S_AmmoChanged);
+    uint8 slot = 0;
+    uint8 ammo = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & slot & ammo;
+    }
+};
+
+struct S_GameOver {
+    NHN_PACKET(S_GameOver);
+    /// More than one entry when the match ends level; scoreless rounds make
+    /// that reachable even with an odd round count.
+    std::vector<uint8> winnerSlots;
+    std::vector<PlayerScore> scores;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & winnerSlots & scores;
+    }
+};
+
+// ===========================================================================
 // control plane
 //
 // Peers dial the match server, not the other way round, so the match server
@@ -681,12 +926,14 @@ struct P_InstanceCreate {
     NHN_PACKET(P_InstanceCreate);
     InstanceId instanceId = kInvalidInstanceId;
     RoomId roomId = kInvalidRoomId;
-    RoomType roomType = RoomType::None;
+    GameMode mode = GameMode::None;
+    /// Already clamped by the match server, so the instance can take it as-is.
+    MatchConfig config;
     std::vector<RoomMemberInfo> members;
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & instanceId & roomId & roomType & members;
+        ar & instanceId & roomId & mode & config & members;
     }
 };
 

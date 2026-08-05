@@ -21,12 +21,16 @@ void PostToRoom(Room* room, Fn&& body) {
 
 }  // namespace
 
-Room::Room(RoomId id, std::string name, RoomType type, std::string password)
+Room::Room(RoomId id, std::string name, GameMode type, std::string password)
     : _id(id),
       _name(std::move(name)),
-      _roomType(type),
-      _capacity(RoomCapacity(type)),
-      _password(std::move(password)) {}
+      _mode(type),
+      _capacity(ModeCapacity(type)),
+      _password(std::move(password)) {
+    // Defaults have to be legal for this mode before anyone touches them —
+    // ammo and wave-cap choices differ per mode.
+    ClampMatchConfig(_mode, _config);
+}
 
 // ---------------------------------------------------------------------------
 // Enqueue: callable from any thread
@@ -59,6 +63,12 @@ void Room::EnqueueReady(SessionId sessionId, bool ready) {
 
 void Room::EnqueueStart(SessionId requesterId) {
     PostToRoom(this, [requesterId](const RoomRef& self) { self->HandleStart(requesterId); });
+}
+
+void Room::EnqueueSetConfig(SessionId requesterId, MatchConfig config) {
+    PostToRoom(this, [requesterId, config](const RoomRef& self) {
+        self->HandleSetConfig(requesterId, config);
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -138,6 +148,9 @@ void Room::HandleJoin(const ClientSessionRef& session, const std::string& passwo
     ack.result = ResultCode::Ok;
     ack.room = BuildDetail();
     session->SendPacket(ack);
+
+    // The joiner needs the current settings; everyone else already has them.
+    session->SendPacket(BuildConfigPacket(true));
 
     GMatchServer->PushChannelJoin(sessionId, ChannelType::Room, _id);
 
@@ -303,9 +316,9 @@ void Room::HandleStart(SessionId requesterId) {
         return;
     }
 
-    const RoomTypeInfo* info = FindRoomType(_roomType);
+    const GameModeDef* info = FindGameMode(_mode);
     if (info == nullptr) {
-        reply(ResultCode::RoomTypeInvalid);
+        reply(ResultCode::GameModeInvalid);
         return;
     }
     if (static_cast<uint8>(_members.size()) < info->minimumToStart) {
@@ -330,8 +343,47 @@ void Room::HandleStart(SessionId requesterId) {
     }
 
     LOG_INFO("room {} '{}': starting with {} players", _id, _name, members.size());
-    GMatchServer->BeginHandoff(std::static_pointer_cast<Room>(shared_from_this()), members);
+    GMatchServer->BeginHandoff(std::static_pointer_cast<Room>(shared_from_this()), members,
+                               _config);
     PublishSummary();
+}
+
+void Room::HandleSetConfig(SessionId requesterId, MatchConfig config) {
+    const Member* requester = FindMember(requesterId);
+    if (requester == nullptr) {
+        return;
+    }
+
+    if (_hostSessionId != requesterId) {
+        // Not an error worth broadcasting; just tell them nothing changed.
+        if (requester->session != nullptr) {
+            requester->session->SendPacket(BuildConfigPacket(false));
+        }
+        return;
+    }
+    if (_state != RoomState::Waiting) {
+        if (requester->session != nullptr) {
+            requester->session->SendPacket(BuildConfigPacket(false));
+        }
+        return;
+    }
+
+    const bool accepted = ClampMatchConfig(_mode, config);
+    _config = config;
+
+    LOG_INFO("room {} '{}': settings now rounds={} paper={}..{} ammo={} waveCap={} items=0x{:02X}",
+             _id, _name, _config.rounds, _config.paperSizeMin, _config.paperSizeMax,
+             _config.ammoPerWave, _config.waveLimit, _config.itemMask);
+
+    Broadcast(MakePacket(BuildConfigPacket(accepted)));
+}
+
+S_RoomConfigChanged Room::BuildConfigPacket(bool accepted) const {
+    S_RoomConfigChanged packet;
+    packet.config = _config;
+    packet.effectiveItemMask = EffectiveItemMask(_config.itemMask, _config.ammoPerWave);
+    packet.accepted = accepted;
+    return packet;
 }
 
 // ---------------------------------------------------------------------------
@@ -516,7 +568,7 @@ RoomDetail Room::BuildDetail() const {
     RoomDetail detail;
     detail.roomId = _id;
     detail.name = _name;
-    detail.roomType = _roomType;
+    detail.mode = _mode;
     detail.state = _state;
     detail.capacity = _capacity;
     detail.hasPassword = HasPassword();
@@ -532,7 +584,7 @@ void Room::PublishSummary() {
     RoomSummary summary;
     summary.roomId = _id;
     summary.name = _name;
-    summary.roomType = _roomType;
+    summary.mode = _mode;
     summary.state = _state;
     summary.memberCount = static_cast<uint8>(_members.size());
     summary.capacity = _capacity;

@@ -162,6 +162,26 @@ bool ClientApp::HandleCommand(const std::vector<std::string>& args, const std::s
         return true;
     }
 
+    if (command == "fire") {
+        CommandFire(args);
+        return true;
+    }
+
+    if (command == "board") {
+        CommandBoard();
+        return true;
+    }
+
+    if (command == "game") {
+        CommandGame();
+        return true;
+    }
+
+    if (command == "autoplay") {
+        CommandAutoplay(args);
+        return true;
+    }
+
     if (command == "expect") {
         return CommandExpect(args);
     }
@@ -190,10 +210,10 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
             return;
         }
         C_RoomCreate create;
-        create.roomType = ParseRoomType(args[2]);
+        create.mode = ParseGameMode(args[2]);
         create.name = args.size() > 3 ? args[3] : "room";
         create.password = args.size() > 4 ? args[4] : "";
-        if (create.roomType == RoomType::None) {
+        if (create.mode == GameMode::None) {
             Console::Error("unknown room type '{}'", args[2]);
             return;
         }
@@ -207,8 +227,8 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
             return;
         }
         C_QuickMatch quick;
-        quick.roomType = ParseRoomType(args[2]);
-        if (quick.roomType == RoomType::None) {
+        quick.mode = ParseGameMode(args[2]);
+        if (quick.mode == GameMode::None) {
             Console::Error("unknown room type '{}'", args[2]);
             return;
         }
@@ -222,7 +242,7 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
         for (size_t i = 2; i < args.size(); ++i) {
             const std::string& option = args[i];
             if (option.starts_with("--type=")) {
-                request.roomType = ParseRoomType(option.substr(7));
+                request.mode = ParseGameMode(option.substr(7));
             } else if (option.starts_with("--name=")) {
                 request.nameFilter = option.substr(7);
             } else if (option.starts_with("--page=")) {
@@ -346,6 +366,11 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
         return;
     }
 
+    if (subcommand == "config") {
+        CommandConfig(args);
+        return;
+    }
+
     if (subcommand == "info") {
         std::lock_guard<std::mutex> guard(_lock);
         Console::Print("  room {} — {} member(s), host session {}", _roomId.load(),
@@ -360,6 +385,148 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
 
     Console::Error("unknown room subcommand '{}'", subcommand);
     (void)rest;
+}
+
+void ClientApp::CommandFire(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        Console::Error("usage: fire <x> <y> | fire cell <index> | fire item [kind]");
+        return;
+    }
+
+    int32 x = 0;
+    int32 y = 0;
+    uint32 tick = 0;
+
+    if (args[1] == "cell") {
+        if (args.size() < 3) {
+            Console::Error("usage: fire cell <index>");
+            return;
+        }
+        const auto cell = static_cast<uint16>(ParseUint(args[2], 0));
+        if (!AimAtCell(cell, x, y, tick)) {
+            Console::Error("cell {} is not on screen right now", cell);
+            return;
+        }
+        Console::Print("  firing at cell {} ({}, {}) as seen at tick {}", cell, x, y, tick);
+    } else if (args[1] == "item") {
+        const ItemKind kind = args.size() > 2 ? ParseItemKind(args[2]) : ItemKind::None;
+        if (!AimAtItem(kind, x, y, tick)) {
+            Console::Error("no matching item on screen");
+            return;
+        }
+        Console::Print("  firing at item ({}, {}) as seen at tick {}", x, y, tick);
+    } else {
+        if (args.size() < 3) {
+            Console::Error("usage: fire <x> <y>");
+            return;
+        }
+        x = static_cast<int32>(ParseUint(args[1], 0));
+        y = static_cast<int32>(ParseUint(args[2], 0));
+        std::lock_guard<std::mutex> guard(_lock);
+        tick = _lastSnapshotTick;
+    }
+
+    SendFire(x, y, tick);
+}
+
+void ClientApp::CommandBoard() const {
+    Console::Print("{}", FormatBoard());
+}
+
+void ClientApp::CommandGame() const {
+    std::lock_guard<std::mutex> guard(_lock);
+    Console::Print("  board      {}x{}, {} in a row", _boardSpec.width, _boardSpec.height,
+                   _boardSpec.winLength);
+    Console::Print("  slot       {}", _mySlot.load());
+    Console::Print("  round      {}/{}", _roundIndex.load() + 1, _matchConfig.rounds);
+    Console::Print("  wave       {}", _waveActive.load() ? "active" : "-");
+    Console::Print("  ammo       {}", _myAmmo.load());
+    Console::Print("  score      {}", _myScore.load());
+    Console::Print("  cells mine {}", _cellsClaimedByMe.load());
+    Console::Print("  entities   {} (tick {})", _entities.size(), _lastSnapshotTick);
+    Console::Print("  over       {}", _gameOver.load());
+}
+
+void ClientApp::CommandAutoplay(const std::vector<std::string>& args) {
+    const bool on = args.size() < 2 || args[1] != "off";
+    if (on == _autoplay.exchange(on)) {
+        return;
+    }
+    Console::Print("  autoplay {}", on ? "on" : "off");
+    if (on) {
+        ScheduleAutoplay();
+    }
+}
+
+void ClientApp::CommandConfig(const std::vector<std::string>& args) {
+    // Starts from what the room already has, so setting one key does not reset
+    // the rest.
+    C_RoomSetConfig packet;
+    {
+        std::lock_guard<std::mutex> guard(_lock);
+        packet.config = _matchConfig;
+    }
+
+    for (size_t i = 2; i < args.size(); ++i) {
+        const std::string& option = args[i];
+        const auto equals = option.find('=');
+        if (equals == std::string::npos) {
+            continue;
+        }
+        const std::string key = option.substr(0, equals);
+        const std::string value = option.substr(equals + 1);
+
+        if (key == "rounds") {
+            packet.config.rounds = static_cast<uint8>(ParseUint(value, 3));
+        } else if (key == "ammo") {
+            packet.config.ammoPerWave =
+                value == "inf" ? uint8{0} : static_cast<uint8>(ParseUint(value, 3));
+        } else if (key == "waves") {
+            packet.config.waveLimit =
+                value == "inf" ? uint8{0} : static_cast<uint8>(ParseUint(value, 10));
+        } else if (key == "paper") {
+            const auto comma = value.find(',');
+            if (comma != std::string::npos) {
+                packet.config.paperSizeMin =
+                    static_cast<uint8>(ParseUint(value.substr(0, comma), 2));
+                packet.config.paperSizeMax =
+                    static_cast<uint8>(ParseUint(value.substr(comma + 1), 4));
+            } else {
+                const auto size = static_cast<uint8>(ParseUint(value, 3));
+                packet.config.paperSizeMin = size;
+                packet.config.paperSizeMax = size;
+            }
+        } else if (key == "items") {
+            if (value == "all") {
+                packet.config.itemMask = kAllItemsMask;
+            } else if (value == "none") {
+                packet.config.itemMask = 0;
+            } else {
+                // Comma-separated names, so a scenario can isolate one item.
+                uint32 mask = 0;
+                size_t start = 0;
+                while (start <= value.size()) {
+                    const auto next = value.find(',', start);
+                    const std::string name =
+                        value.substr(start, next == std::string::npos ? std::string::npos
+                                                                      : next - start);
+                    const ItemKind kind = ParseItemKind(name);
+                    if (kind != ItemKind::None) {
+                        mask |= ItemBit(kind);
+                    }
+                    if (next == std::string::npos) {
+                        break;
+                    }
+                    start = next + 1;
+                }
+                packet.config.itemMask = mask;
+            }
+        } else {
+            Console::Error("unknown config key '{}'", key);
+        }
+    }
+
+    SendToMatch(packet);
 }
 
 void ClientApp::CommandChat(const std::vector<std::string>& args, const std::string& rest) {
@@ -502,6 +669,31 @@ bool ClientApp::CommandExpect(const std::vector<std::string>& args) {
             std::lock_guard<std::mutex> guard(_lock);
             return _roomMembers.size() == expected;
         };
+    } else if (what == "match") {
+        timeoutMs = args.size() > 2 ? ParseUint(args[2], timeoutMs) : timeoutMs;
+        predicate = [this] { return _matchSetupSeen.load(); };
+    } else if (what == "gameover") {
+        timeoutMs = args.size() > 2 ? ParseUint(args[2], 120000) : 120000;
+        predicate = [this] { return _gameOver.load(); };
+    } else if (what == "wave") {
+        timeoutMs = args.size() > 2 ? ParseUint(args[2], timeoutMs) : timeoutMs;
+        predicate = [this] { return _waveActive.load(); };
+    } else if (what == "round") {
+        if (args.size() < 3) {
+            Console::Error("usage: expect round <index> [timeoutMs]");
+            return true;
+        }
+        const auto wanted = static_cast<uint8>(ParseUint(args[2], 0));
+        timeoutMs = args.size() > 3 ? ParseUint(args[3], 60000) : 60000;
+        predicate = [this, wanted] { return _roundIndex.load() >= wanted; };
+    } else if (what == "cells") {
+        if (args.size() < 3) {
+            Console::Error("usage: expect cells <count> [timeoutMs]");
+            return true;
+        }
+        const uint32 wanted = ParseUint(args[2], 0);
+        timeoutMs = args.size() > 3 ? ParseUint(args[3], 60000) : 60000;
+        predicate = [this, wanted] { return _cellsClaimedByMe.load() >= wanted; };
     } else if (what == "voiceframes") {
         if (args.size() < 3) {
             Console::Error("usage: expect voiceframes <count> [timeoutMs]");
@@ -566,6 +758,19 @@ void ClientApp::CommandHelp() const {
    room ready [on|off]
    room start
    room info                     print the local view of the room
+
+ lobby settings                  host only; the server clamps to what the mode allows
+   room config rounds=3 ammo=3 waves=10 paper=2,4 items=all
+   room config items=grenade,balloon        isolate specific items
+   room config ammo=inf waves=inf
+
+ the game                        no renderer, so aim from the last snapshot
+   fire <x> <y>                  raw point in the 1920x1080 field
+   fire cell <index>             aim at a board cell where it was last seen
+   fire item [kind]              aim at an item
+   autoplay on | off             keep firing at unclaimed cells
+   board                         print the board
+   game                          print game state
 
  chat
    chat global <message>
