@@ -1,0 +1,27 @@
+# Four-player scenario, host side.
+# Run alongside three copies of smoke_join.txt.
+connect
+expect hello 5000
+expect chat 5000
+expect voice 5000
+
+room create quad arena
+expect room 5000
+chat global host is up
+
+# Wait for the other three to arrive.
+expect members 4 20000
+room info
+
+voice on
+sleep 1000
+chat room everyone ready?
+
+room start
+expect ingame 20000
+chat instance hello from the host
+sleep 2000
+
+voice stat
+stat
+quit

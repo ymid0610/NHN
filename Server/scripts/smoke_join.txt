@@ -1,0 +1,20 @@
+# Four-player scenario, joiner side. Pass a distinct --nick per process.
+connect
+expect hello 5000
+expect chat 5000
+expect voice 5000
+
+# Join by name: room ids keep counting up across restarts, so an id in a
+# script only works on a freshly started match server.
+sleep 1000
+room joinname arena
+expect room 10000
+room ready on
+
+voice on
+expect ingame 30000
+sleep 2000
+
+voice stat
+stat
+quit

@@ -1,0 +1,52 @@
+# Single-process checks of the room rules that do not need a second player.
+connect
+expect hello 5000
+expect chat 5000
+
+echo --- create a locked room ---
+room create duo secret hunter2
+expect room 5000
+room info
+
+echo --- it must still be listed, with the locked flag ---
+room list
+room list --nolocked
+
+echo --- global chat works from inside a room ---
+chat global hello from inside a locked room
+sleep 300
+
+echo --- room chat works ---
+chat room hello room
+sleep 300
+
+echo --- start must fail: only one player in a duo room ---
+room start
+sleep 300
+
+echo --- kick must fail: cannot target yourself ---
+room kick slot:0
+sleep 300
+
+echo --- leaving closes a room with no one left in it ---
+room leave
+expect noroom 5000
+room list
+
+echo --- joining a locked room with the wrong password must fail ---
+room create duo secret2 pw
+expect room 5000
+room leave
+expect noroom 5000
+
+echo --- rate limiting kicks in on a burst of global chat ---
+chat global spam 1
+chat global spam 2
+chat global spam 3
+chat global spam 4
+chat global spam 5
+chat global spam 6
+sleep 500
+
+stat
+quit

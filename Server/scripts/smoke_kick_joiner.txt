@@ -1,0 +1,18 @@
+# Joiner side of the kick scenario. Run with --nick=kicked.
+connect
+expect hello 5000
+sleep 1000
+room joinname kickroom
+expect room 10000
+
+echo --- deliberately staying unready so the host's start fails ---
+sleep 3000
+
+echo --- expect to have been kicked ---
+expect noroom 8000
+
+echo --- rejoining during the cooldown must be refused ---
+room joinname kickroom
+sleep 1000
+stat
+quit

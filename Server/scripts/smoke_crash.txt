@@ -1,0 +1,7 @@
+# Exercises the crash path: reason, symbolised stack, minidump, then the wait
+# for a developer. Run WITHOUT --no-wait to see the acknowledgement prompt.
+connect
+expect hello 5000
+echo --- deliberately faulting now ---
+crash
+echo --- unreachable ---
