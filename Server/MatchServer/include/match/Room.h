@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -34,8 +35,16 @@ public:
 
     Room(RoomId id, std::string name, proto::RoomType type, std::string password);
 
+    /// Reports the outcome of a join attempt.
+    ///
+    /// When supplied, the room stops sending the failure ack itself and leaves
+    /// the decision to the caller — quick match uses this to try the next
+    /// candidate instead of surfacing a race to the player.
+    using JoinCallback = std::function<void(proto::ResultCode)>;
+
     // -- called from any thread ---------------------------------------------
-    void EnqueueJoin(const ClientSessionRef& session, std::string password);
+    void EnqueueJoin(const ClientSessionRef& session, std::string password,
+                     JoinCallback onComplete = nullptr);
     void EnqueueLeave(SessionId sessionId, proto::LeaveReason reason);
     void EnqueueKick(SessionId requesterId, SessionId targetId);
     void EnqueueReady(SessionId sessionId, bool ready);
@@ -58,7 +67,8 @@ public:
 
 private:
     // -- run on the queue ----------------------------------------------------
-    void HandleJoin(const ClientSessionRef& session, const std::string& password);
+    void HandleJoin(const ClientSessionRef& session, const std::string& password,
+                    const JoinCallback& onComplete);
     void HandleLeave(SessionId sessionId, proto::LeaveReason reason);
     void HandleKick(SessionId requesterId, SessionId targetId);
     void HandleReady(SessionId sessionId, bool ready);

@@ -134,6 +134,8 @@ scenarios do not turn into flaky timing guesses.
 | Script | Covers |
 |---|---|
 | `smoke_room_rules.txt` | locked rooms, search filters, chat channels, start/kick refusals, rate limiting |
+| `smoke_quick.txt` | quick match funnels four players into one room |
+| `smoke_quick_overflow.txt` | six duo players become three full rooms, not six empty ones |
 | `smoke_host.txt` + `smoke_join.txt` | full 4-player room to instance handoff, with voice |
 | `smoke_kick_host.txt` + `smoke_kick_joiner.txt` | ready enforcement, kick, rejoin cooldown |
 | `smoke_migrate_host.txt` + `smoke_migrate_joiner.txt` | host migration when the host leaves |
@@ -163,6 +165,23 @@ also:
 - **single-use** — consuming one removes it
 
 Drop any of those three and a ticket becomes a room number anyone can enumerate.
+
+### Quick match
+
+`room quick <mode>` drops a player into a joinable room of that mode, opening
+one if nothing suitable exists. Rooms are otherwise ordinary — quick match only
+automates finding one with space.
+
+Candidates are ordered **fullest first**. Filling one room to capacity starts a
+game; spreading players evenly leaves several rooms one player short and nobody
+playing. Locked rooms are skipped, since quick match has no password to offer,
+as are rooms already in or entering a match.
+
+The candidate list comes from the search index, which lags the rooms themselves,
+so a room can fill up between being picked and the join actually running. Rather
+than surfacing that race as "room full", a failed attempt moves on to the next
+candidate; running out of candidates means opening a new room. The same path
+absorbs a kick cooldown on one of the candidates.
 
 ### Channel membership is server-driven
 

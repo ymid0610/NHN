@@ -35,6 +35,7 @@ enum class PacketId : uint16 {
     S_RoomReadyAck = 1021,
     C_RoomStart = 1022,
     S_RoomStartAck = 1023,
+    C_QuickMatch = 1024,
 
     S_RoomMemberJoined = 1030,
     S_RoomMemberLeft = 1031,
@@ -304,6 +305,22 @@ struct S_RoomStartAck {
     template <class Ar>
     void Serialize(Ar& ar) {
         ar & result;
+    }
+};
+
+/// "Put me in a game of this mode, I do not care which room."
+///
+/// Answered with the ordinary S_RoomJoinAck: the outcome either way is that the
+/// player is in a room, and reusing it means the client needs no extra handler.
+/// Whether an existing room was joined or a new one created is visible from the
+/// member count in that ack.
+struct C_QuickMatch {
+    NHN_PACKET(C_QuickMatch);
+    RoomType roomType = RoomType::None;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & roomType;
     }
 };
 

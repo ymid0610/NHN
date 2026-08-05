@@ -30,6 +30,16 @@ public:
 
     void Search(const proto::C_RoomList& request, proto::S_RoomList& out) const;
 
+    /// Rooms a quick-match player could drop into, best first.
+    ///
+    /// Ordered fullest-first rather than emptiest-first: filling one room to
+    /// capacity starts a game, whereas spreading players evenly leaves several
+    /// rooms one player short and nobody playing.
+    ///
+    /// Locked rooms are excluded — quick match cannot supply a password — as
+    /// are rooms already in or entering a match.
+    std::vector<RoomId> FindQuickMatchCandidates(proto::RoomType roomType, size_t limit) const;
+
     int32 Count() const;
 
     /// Disconnect-time sweep: rooms whose members all vanished.

@@ -1,0 +1,18 @@
+# Quick match, one player per process. Run four of these with distinct nicks:
+# the first opens a quad room, the rest are funnelled into it because
+# candidates are ordered fullest-first.
+connect
+expect hello 5000
+expect chat 5000
+
+room quick quad
+expect room 10000
+room info
+
+# Everyone lands in the same room, so the roster fills as the others arrive.
+expect members 4 25000
+room info
+chat room quick match put us together
+
+stat
+quit

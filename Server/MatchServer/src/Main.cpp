@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
     settings.kickCooldownMs = static_cast<uint32>(config.GetInt("kick-cooldown-ms", 60000));
     settings.maxRooms = config.GetInt("max-rooms", 4096);
     settings.maxSessions = config.GetInt("max-sessions", 4096);
+    settings.quickMatchAttempts = config.GetInt("quick-match-attempts", 5);
 
     GSessionManager = std::make_shared<SessionManager>();
     GRoomManager = std::make_shared<RoomManager>();

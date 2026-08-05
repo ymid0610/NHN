@@ -201,6 +201,21 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
         return;
     }
 
+    if (subcommand == "quick") {
+        if (args.size() < 3) {
+            Console::Error("usage: room quick <duo|quad|2|4>");
+            return;
+        }
+        C_QuickMatch quick;
+        quick.roomType = ParseRoomType(args[2]);
+        if (quick.roomType == RoomType::None) {
+            Console::Error("unknown room type '{}'", args[2]);
+            return;
+        }
+        SendToMatch(quick);
+        return;
+    }
+
     if (subcommand == "list") {
         C_RoomList request;
         request.pageSize = 20;
@@ -541,6 +556,7 @@ void ClientApp::CommandHelp() const {
    stat                          print client state
 
  rooms
+   room quick <duo|quad|2|4>     quick match: join the fullest open room, or open one
    room create <duo|quad|2|4> [name] [password]
    room list [--type=x] [--name=y] [--page=n] [--nofull] [--nolocked]
    room join <roomId> [password]

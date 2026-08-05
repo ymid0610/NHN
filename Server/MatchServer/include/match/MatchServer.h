@@ -31,6 +31,10 @@ public:
         uint32 kickCooldownMs = 60'000;
         int32 maxRooms = 4096;
         int32 maxSessions = 4096;
+        /// How many existing rooms quick match will try before giving up and
+        /// creating one. Each attempt is a full round through a room's job
+        /// queue, so this bounds the work one request can cause.
+        int32 quickMatchAttempts = 5;
     };
 
     explicit MatchServer(Settings settings) : _settings(settings) {}
@@ -66,6 +70,18 @@ public:
     void StartMaintenanceTimer();
 
 private:
+    /// Drops @p session into a joinable room of @p roomType, creating one if
+    /// nothing suitable exists.
+    ///
+    /// Candidates come from the search index, which lags the rooms themselves —
+    /// a room can fill up between being picked and the join running. Rather
+    /// than surfacing that race to the player as "room full", a failed attempt
+    /// moves on to the next candidate, and running out of candidates means
+    /// creating a fresh room.
+    void QuickMatchStep(const ClientSessionRef& session, proto::RoomType roomType,
+                        Ref<std::vector<RoomId>> candidates, size_t index);
+    void QuickMatchCreate(const ClientSessionRef& session, proto::RoomType roomType);
+
     enum class HandoffPhase : uint8 {
         AwaitingCreate,  // P_InstanceCreate sent, no ack yet
         AwaitingJoin,    // clients told where to go, waiting for them to arrive
@@ -109,6 +125,8 @@ private:
     std::unordered_map<InstanceId, PendingHandoff> _pendingHandoffs;
     std::set<Membership> _memberships;
     InstanceId _nextInstanceId = 1;
+    /// Only for naming auto-created rooms readably; not an identifier.
+    std::atomic<uint64> _quickMatchCounter{1};
 };
 
 }  // namespace nhn::match

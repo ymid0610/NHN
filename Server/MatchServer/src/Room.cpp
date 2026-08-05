@@ -32,9 +32,11 @@ Room::Room(RoomId id, std::string name, RoomType type, std::string password)
 // Enqueue: callable from any thread
 // ---------------------------------------------------------------------------
 
-void Room::EnqueueJoin(const ClientSessionRef& session, std::string password) {
-    PostToRoom(this, [session, password = std::move(password)](const RoomRef& self) {
-        self->HandleJoin(session, password);
+void Room::EnqueueJoin(const ClientSessionRef& session, std::string password,
+                       JoinCallback onComplete) {
+    PostToRoom(this, [session, password = std::move(password),
+                      onComplete = std::move(onComplete)](const RoomRef& self) {
+        self->HandleJoin(session, password, onComplete);
     });
 }
 
@@ -63,10 +65,17 @@ void Room::EnqueueStart(SessionId requesterId) {
 // Join / leave
 // ---------------------------------------------------------------------------
 
-void Room::HandleJoin(const ClientSessionRef& session, const std::string& password) {
+void Room::HandleJoin(const ClientSessionRef& session, const std::string& password,
+                      const JoinCallback& onComplete) {
     const SessionId sessionId = session->GetSessionId();
 
-    auto reject = [&session](ResultCode result) {
+    // With a callback the caller owns the failure response; without one the
+    // player is told directly.
+    auto reject = [&session, &onComplete](ResultCode result) {
+        if (onComplete) {
+            onComplete(result);
+            return;
+        }
         S_RoomJoinAck ack;
         ack.result = result;
         session->SendPacket(ack);
@@ -135,6 +144,10 @@ void Room::HandleJoin(const ClientSessionRef& session, const std::string& passwo
     LOG_INFO("room {} '{}': {} joined ({}/{})", _id, _name, member.nickname, _members.size(),
              _capacity);
     PublishSummary();
+
+    if (onComplete) {
+        onComplete(ResultCode::Ok);
+    }
 }
 
 void Room::HandleLeave(SessionId sessionId, LeaveReason reason) {

@@ -1,5 +1,7 @@
 #include "match/MatchServer.h"
 
+#include <format>
+
 #include "match/MatchGlobal.h"
 #include "match/RoomManager.h"
 #include "match/SessionManager.h"
@@ -155,6 +157,31 @@ void MatchServer::RegisterClientHandlers() {
             room->EnqueueJoin(session, packet.password);
         });
 
+    _clientDispatcher.On<C_QuickMatch>(
+        [this](const ClientSessionRef& session, const C_QuickMatch& packet) {
+            if (session->GetRoomId() != kInvalidRoomId) {
+                S_RoomJoinAck ack;
+                ack.result = ResultCode::AlreadyInRoom;
+                session->SendPacket(ack);
+                return;
+            }
+            if (!IsValidRoomType(packet.roomType)) {
+                S_RoomJoinAck ack;
+                ack.result = ResultCode::RoomTypeInvalid;
+                session->SendPacket(ack);
+                return;
+            }
+
+            auto candidates = std::make_shared<std::vector<RoomId>>(
+                GRoomManager->FindQuickMatchCandidates(
+                    packet.roomType, static_cast<size_t>(_settings.quickMatchAttempts)));
+
+            LOG_DEBUG("quick match: session {} wants {}, {} candidate(s)",
+                      session->GetSessionId(), ToString(packet.roomType), candidates->size());
+
+            QuickMatchStep(session, packet.roomType, candidates, 0);
+        });
+
     _clientDispatcher.On<C_RoomLeave>([](const ClientSessionRef& session, const C_RoomLeave&) {
         RoomRef room = RequireRoom(session);
         S_RoomLeaveAck ack;
@@ -201,6 +228,65 @@ void MatchServer::RegisterClientHandlers() {
         }
         room->EnqueueStart(session->GetSessionId());
     });
+}
+
+// ---------------------------------------------------------------------------
+// Quick match
+// ---------------------------------------------------------------------------
+
+void MatchServer::QuickMatchStep(const ClientSessionRef& session, RoomType roomType,
+                                 Ref<std::vector<RoomId>> candidates, size_t index) {
+    // A player who disconnected or joined a room by hand while this was in
+    // flight should not be dragged into one.
+    if (!session->IsConnected() || session->GetRoomId() != kInvalidRoomId) {
+        return;
+    }
+
+    if (index >= candidates->size()) {
+        QuickMatchCreate(session, roomType);
+        return;
+    }
+
+    const RoomId roomId = (*candidates)[index];
+    RoomRef room = GRoomManager->Find(roomId);
+    if (room == nullptr) {
+        // Closed since the index was read.
+        QuickMatchStep(session, roomType, candidates, index + 1);
+        return;
+    }
+
+    Ref<MatchServer> self = std::static_pointer_cast<MatchServer>(shared_from_this());
+    room->EnqueueJoin(session, "", [self, session, roomType, candidates, index](ResultCode result) {
+        if (result == ResultCode::Ok) {
+            return;  // The room already sent the join ack with the roster.
+        }
+        // Full, started, or the player is on that room's kick cooldown — all
+        // ordinary outcomes for an automatic match. Try the next one.
+        self->QuickMatchStep(session, roomType, candidates, index + 1);
+    });
+}
+
+void MatchServer::QuickMatchCreate(const ClientSessionRef& session, RoomType roomType) {
+    const std::string name =
+        std::format("{} #{}", ToString(roomType), _quickMatchCounter.fetch_add(1));
+
+    ResultCode result = ResultCode::Ok;
+    RoomRef room = GRoomManager->Create(name, roomType, "", result);
+    if (room == nullptr) {
+        S_RoomJoinAck ack;
+        ack.result = result;
+        session->SendPacket(ack);
+        LOG_WARN("quick match: cannot create a room for session {}: {}", session->GetSessionId(),
+                 ToString(result));
+        return;
+    }
+
+    LOG_INFO("quick match: session {} opened room {} '{}'", session->GetSessionId(), room->GetId(),
+             name);
+
+    // No callback: this room is brand new and empty, so a failure here is a
+    // real error the player should see rather than something to retry.
+    room->EnqueueJoin(session, "");
 }
 
 // ---------------------------------------------------------------------------
