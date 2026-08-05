@@ -48,6 +48,8 @@ void PeerSession::OnDisconnected() {
 }
 
 void PeerSession::OnRecvPacket(uint8* buffer, int32 length) {
+    // Any packet counts as a sign of life, not just the heartbeat.
+    MarkSeen();
     GMatchServer->DispatchPeerPacket(std::static_pointer_cast<PeerSession>(shared_from_this()),
                                      buffer, length);
 }
@@ -57,10 +59,36 @@ void PeerSession::OnRecvPacket(uint8* buffer, int32 length) {
 // ---------------------------------------------------------------------------
 
 void PeerRegistry::Register(const PeerSessionRef& session) {
+    session->MarkSeen();
+
     std::lock_guard<std::mutex> guard(_lock);
     if (std::find(_peers.begin(), _peers.end(), session) == _peers.end()) {
         _peers.push_back(session);
     }
+}
+
+int32 PeerRegistry::DropSilentPeers(uint32 timeoutMs) {
+    const TickCount now = NowTick();
+
+    std::vector<PeerSessionRef> stale;
+    {
+        std::lock_guard<std::mutex> guard(_lock);
+        for (const PeerSessionRef& peer : _peers) {
+            const TickCount lastSeen = peer->GetLastSeen();
+            if (lastSeen != 0 && now - lastSeen >= timeoutMs) {
+                stale.push_back(peer);
+            }
+        }
+    }
+
+    // Disconnecting runs OnDisconnected, which unregisters — so it happens
+    // outside the lock.
+    for (const PeerSessionRef& peer : stale) {
+        LOG_WARN("peer {} '{}' has been silent for {} ms; dropping it",
+                 ToString(peer->GetServerType()), peer->GetServerId(), now - peer->GetLastSeen());
+        peer->Disconnect("peer stopped responding");
+    }
+    return static_cast<int32>(stale.size());
 }
 
 void PeerRegistry::Unregister(const PeerSessionRef& session) {

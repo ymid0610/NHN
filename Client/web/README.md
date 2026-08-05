@@ -14,6 +14,42 @@ python -m http.server 8080 --directory Client/web
 
 Then open <http://localhost:8080>.
 
+## Letting someone else connect
+
+They need **no files at all** — a browser and a URL. That is the whole point of
+this client.
+
+On your machine:
+
+```powershell
+# 1. tell the satellite servers what address to advertise
+cd Server; .\scripts\run_stack.ps1 -PublicHost <your-ip>
+
+# 2. serve the page on all interfaces (the default for http.server)
+python -m http.server 8080 --directory Client/web
+
+# 3. allow the ports through the firewall (run as administrator, once)
+New-NetFirewallRule -DisplayName "TickTackBang" -Direction Inbound `
+  -Protocol TCP -LocalPort 8080,7787,7810,7860 -Action Allow
+```
+
+Then send them `http://<your-ip>:8080`.
+
+`-PublicHost` is the step that is easy to miss and hard to diagnose. The chat and
+instance servers register their own address with the match server, which passes
+it to clients. Left at the default they advertise `127.0.0.1`, so a remote
+browser is told to connect to *itself*: the lobby works, and chat and the game
+then fail with nothing to explain why. The client detects that specific case and
+warns, but fixing it at the source is better.
+
+No domain is needed. If you are behind a router and your friend is not on the
+same network, the simplest option is a mesh VPN such as Tailscale — both
+machines get a stable address and everything works exactly as it does on a LAN.
+
+Avoid HTTPS tunnels (ngrok, Cloudflare Tunnel) unless you are prepared for the
+consequence: a page served over `https://` cannot open a `ws://` socket, so you
+would have to tunnel all four ports with TLS and switch the client to `wss://`.
+
 ## Why the server needed changing
 
 A browser cannot open a raw TCP or UDP socket, so it could not speak to these

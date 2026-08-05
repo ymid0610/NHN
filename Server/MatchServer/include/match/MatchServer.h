@@ -35,6 +35,9 @@ public:
         /// creating one. Each attempt is a full round through a room's job
         /// queue, so this bounds the work one request can cause.
         int32 quickMatchAttempts = 5;
+        /// A peer is dropped after this long without a word. Satellites
+        /// heartbeat every 2 s, so this allows several to be missed.
+        uint32 peerSilenceTimeoutMs = 10'000;
     };
 
     explicit MatchServer(Settings settings) : _settings(settings) {}

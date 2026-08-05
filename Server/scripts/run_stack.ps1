@@ -43,6 +43,14 @@ param(
     # launching console outlives the servers.
     [switch]$Hidden,
 
+    # Address the chat, voice and instance servers advertise to clients.
+    #
+    # Must be set for anyone connecting from another machine. Those servers
+    # register their own endpoint with the match server, which passes it on, so
+    # leaving it at loopback tells a remote client to connect to itself — the
+    # lobby works and then chat and the game fail for no visible reason.
+    [string]$PublicHost = '127.0.0.1',
+
     [string]$LogLevel = 'info'
 )
 
@@ -70,9 +78,21 @@ if (-not (Test-Path $logDir)) {
     New-Item -ItemType Directory -Path $logDir | Out-Null
 }
 
-# Anything left over from a previous run would hold the listening ports.
+# Anything left over from a previous run is worse than a port conflict: a
+# satellite server reconnects on its own, so an old one rejoins the new match
+# server and competes for work with the one you just started. Report what was
+# killed rather than doing it silently.
+$leftovers = @()
 foreach ($name in $servers) {
-    Get-Process -Name $name -ErrorAction SilentlyContinue | Stop-Process -Force
+    $existing = @(Get-Process -Name $name -ErrorAction SilentlyContinue)
+    if ($existing.Count) {
+        $leftovers += "$name x$($existing.Count)"
+        $existing | Stop-Process -Force
+    }
+}
+if ($leftovers.Count) {
+    Write-Warning "killed leftover processes from a previous run: $($leftovers -join ', ')"
+    Start-Sleep -Milliseconds 400   # let the ports actually release
 }
 
 foreach ($name in $servers) {
@@ -81,11 +101,18 @@ foreach ($name in $servers) {
         throw "missing $exe"
     }
 
+    # The match server is reached directly by clients and advertises nothing, so
+    # only the satellites need to be told what address to publish.
+    $common = @("--log-level=$LogLevel", "--log-dir=$logDir")
+    if ($name -ne 'MatchServer') {
+        $common += "--public-host=$PublicHost"
+    }
+
     if ($Hidden) {
         # Redirection forces console inheritance; only use this when the caller
         # sticks around, or the servers die with it.
         Start-Process -FilePath $exe `
-            -ArgumentList "--no-wait", "--log-level=$LogLevel", "--log-dir=$logDir" `
+            -ArgumentList (@("--no-wait") + $common) `
             -WorkingDirectory $binDir `
             -RedirectStandardOutput (Join-Path $logDir "$name.out.txt") `
             -RedirectStandardError (Join-Path $logDir "$name.err.txt") `
@@ -95,7 +122,7 @@ foreach ($name in $servers) {
         # No redirection, so Start-Process goes through ShellExecute and the
         # server gets its own console - detached from this one's process group.
         Start-Process -FilePath $exe `
-            -ArgumentList "--log-level=$LogLevel", "--log-dir=$logDir" `
+            -ArgumentList $common `
             -WorkingDirectory $binDir `
             -WindowStyle Minimized | Out-Null
     }

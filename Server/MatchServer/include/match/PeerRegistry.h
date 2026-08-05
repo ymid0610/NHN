@@ -32,6 +32,12 @@ public:
     int32 GetCapacity() const { return _capacity.load(std::memory_order_acquire); }
     void SetCapacity(int32 capacity) { _capacity.store(capacity, std::memory_order_release); }
 
+    /// Last time anything at all was heard from this peer. Satellites heartbeat
+    /// every couple of seconds, so a stale value means the peer is gone or
+    /// wedged even though the socket is still open.
+    TickCount GetLastSeen() const { return _lastSeenAt.load(std::memory_order_acquire); }
+    void MarkSeen() { _lastSeenAt.store(NowTick(), std::memory_order_release); }
+
     int32 GetLoad() const { return _load.load(std::memory_order_acquire); }
     void AddLoad(int32 delta) { _load.fetch_add(delta, std::memory_order_acq_rel); }
     void SetLoad(int32 load) { _load.store(load, std::memory_order_release); }
@@ -51,6 +57,7 @@ private:
     std::atomic<uint16> _publicWebPort{0};
     std::atomic<int32> _capacity{0};
     std::atomic<int32> _load{0};
+    std::atomic<TickCount> _lastSeenAt{0};
 
     mutable std::mutex _lock;
     std::string _serverId;
@@ -87,6 +94,15 @@ public:
     void SendToAll(proto::ServerType type, const SendBufferRef& sendBuffer);
 
     int32 Count(proto::ServerType type) const;
+
+    /// Disconnects peers that have gone quiet.
+    ///
+    /// Without this a peer that stops responding but keeps its socket open
+    /// stays registered forever, and every match handed to it times out with no
+    /// indication of why. Dropping it lets another server take the work, or
+    /// makes the failure an honest "no instance server".
+    /// @return how many were dropped.
+    int32 DropSilentPeers(uint32 timeoutMs);
 
 private:
     mutable std::mutex _lock;

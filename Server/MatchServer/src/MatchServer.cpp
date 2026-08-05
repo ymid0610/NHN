@@ -665,6 +665,9 @@ void MatchServer::SweepHandoffs() {
 void MatchServer::StartMaintenanceTimer() {
     Ref<MatchServer> self = std::static_pointer_cast<MatchServer>(shared_from_this());
     DoTimer(1000, [self]() {
+        // Before sweeping handoffs, so a wedged peer is out of the registry
+        // before anything else is assigned to it.
+        GPeerRegistry->DropSilentPeers(self->_settings.peerSilenceTimeoutMs);
         self->SweepHandoffs();
         self->StartMaintenanceTimer();
     });

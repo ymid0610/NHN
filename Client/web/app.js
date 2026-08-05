@@ -333,6 +333,27 @@ function fire(x, y) {
 
 const send = (conn, writer) => conn && conn.send(writer);
 
+const LOOPBACK = ['127.0.0.1', 'localhost', '::1'];
+
+/// Chat and instance addresses come from the server, which is right in general
+/// — they can genuinely live elsewhere.
+///
+/// But if it names loopback while we reached it over the network, that address
+/// is provably wrong for us: the satellite servers were started without
+/// --public-host and are advertising themselves as 127.0.0.1. Substituting the
+/// host we already reached is correct for every single-box setup, and saying so
+/// beats the alternative, which is a lobby that works and a game that silently
+/// never connects.
+function resolveHost(advertised) {
+  if (!advertised) return S.host;
+  if (LOOPBACK.includes(advertised) && !LOOPBACK.includes(S.host)) {
+    log(`server advertised ${advertised}, which cannot be right from here — ` +
+        `using ${S.host}. Start the servers with -PublicHost to fix this properly.`, 'err');
+    return S.host;
+  }
+  return advertised;
+}
+
 function connectMatch() {
   S.match?.close();
   const url = `ws://${S.host}:7787`;
@@ -382,7 +403,7 @@ function onMatchPacket(id, r) {
       r.str(); r.u16(); r.str();  // voice endpoint: UDP, unusable from a browser
       if (result !== 0) { log(`hello rejected: ${P.resultName(result)}`, 'err'); return; }
       log(`connected as session ${S.sessionId}`, 'ok');
-      connectChat(chatHost || S.host, chatPort, chatTicket);
+      connectChat(resolveHost(chatHost), chatPort, chatTicket);
       setScreen('lobby');
       requestRoomList();
       break;
@@ -462,7 +483,7 @@ function onMatchPacket(id, r) {
     case Id.S_GameStarting: {
       const instanceId = r.u64(), host = r.str(), port = r.u16(), ticket = r.str();
       log(`game starting — instance ${instanceId}`, 'ok');
-      connectInstance(host || S.host, port, ticket);
+      connectInstance(resolveHost(host), port, ticket);
       break;
     }
     case Id.S_Error:
