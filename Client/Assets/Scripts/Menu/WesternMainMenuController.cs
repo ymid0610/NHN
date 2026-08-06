@@ -45,6 +45,9 @@ namespace NHN.Menu
         public const string PrefMasterVolume = "NHN.MasterVolume";
         public const string PrefAimSensitivity = "NHN.AimSensitivity";
         public const string PrefScreenShake = "NHN.ScreenShake";
+        public const string PrefFullScreen = "NHN.FullScreen";
+        public const string PrefResolutionWidth = "NHN.ResolutionWidth";
+        public const string PrefResolutionHeight = "NHN.ResolutionHeight";
 
         [Header("Scene")]
         public string inGameSceneName = "InGamePrototype";
@@ -106,6 +109,15 @@ namespace NHN.Menu
         private readonly List<SegmentOption<GameMode>> createModeSegments = new List<SegmentOption<GameMode>>();
         private readonly List<SegmentOption<GameMode>> matchmakingModeSegments = new List<SegmentOption<GameMode>>();
         private readonly List<SegmentOption<int>> playerCountSegments = new List<SegmentOption<int>>();
+        private readonly List<SegmentOption<int>> resolutionSegments = new List<SegmentOption<int>>();
+        private static readonly Vector2Int[] ResolutionPresets =
+        {
+            new Vector2Int(1280, 720),
+            new Vector2Int(1600, 900),
+            new Vector2Int(1920, 1080),
+            new Vector2Int(2560, 1440)
+        };
+        private const int DefaultResolutionIndex = 2;
 
         private Canvas canvas;
         private Font menuFont;
@@ -146,6 +158,7 @@ namespace NHN.Menu
         private bool itemsEnabled = true;
         private bool fullScreenEnabled;
         private bool screenShakeEnabled = true;
+        private int selectedResolutionIndex = DefaultResolutionIndex;
         private float masterVolume = 0.9f;
         private float aimSensitivity = 1f;
         private bool queuedForMatchmaking;
@@ -197,7 +210,19 @@ namespace NHN.Menu
             masterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(PrefMasterVolume, 0.9f));
             aimSensitivity = Mathf.Clamp(PlayerPrefs.GetFloat(PrefAimSensitivity, 1f), 0.5f, 2f);
             screenShakeEnabled = PlayerPrefs.GetInt(PrefScreenShake, 1) == 1;
-            fullScreenEnabled = Screen.fullScreen;
+            fullScreenEnabled = PlayerPrefs.GetInt(PrefFullScreen, Screen.fullScreen ? 1 : 0) == 1;
+
+            bool hasSavedResolution = PlayerPrefs.HasKey(PrefResolutionWidth) && PlayerPrefs.HasKey(PrefResolutionHeight);
+            int fallbackWidth = Screen.currentResolution.width > 0 ? Screen.currentResolution.width : Screen.width;
+            int fallbackHeight = Screen.currentResolution.height > 0 ? Screen.currentResolution.height : Screen.height;
+            int savedWidth = PlayerPrefs.GetInt(PrefResolutionWidth, fallbackWidth);
+            int savedHeight = PlayerPrefs.GetInt(PrefResolutionHeight, fallbackHeight);
+            selectedResolutionIndex = FindClosestResolutionPreset(savedWidth, savedHeight);
+            if (hasSavedResolution || PlayerPrefs.HasKey(PrefFullScreen))
+            {
+                ApplySelectedResolution();
+            }
+
             ClampPlayerCountForMode();
         }
 
@@ -212,10 +237,14 @@ namespace NHN.Menu
             PlayerPrefs.SetFloat(PrefMasterVolume, masterVolume);
             PlayerPrefs.SetFloat(PrefAimSensitivity, aimSensitivity);
             PlayerPrefs.SetInt(PrefScreenShake, screenShakeEnabled ? 1 : 0);
+            PlayerPrefs.SetInt(PrefFullScreen, fullScreenEnabled ? 1 : 0);
+            Vector2Int selectedResolution = GetSelectedResolution();
+            PlayerPrefs.SetInt(PrefResolutionWidth, selectedResolution.x);
+            PlayerPrefs.SetInt(PrefResolutionHeight, selectedResolution.y);
             PlayerPrefs.Save();
 
             AudioListener.volume = masterVolume;
-            Screen.fullScreen = fullScreenEnabled;
+            ApplySelectedResolution();
         }
 
         private void LoadUiAssetSprites()
@@ -564,8 +593,16 @@ namespace NHN.Menu
             volumeSlider = CreateSliderControl(audioSection, "마스터 볼륨", 0f, 1f, masterVolume, delegate(float value) { masterVolume = value; });
             sensitivitySlider = CreateSliderControl(audioSection, "조준 감도", 0.5f, 2f, aimSensitivity, delegate(float value) { aimSensitivity = value; });
 
-            RectTransform displaySection = CreateSection(panel, "Display Section", 150f);
+            RectTransform displaySection = CreateSection(panel, "Display Section", 260f);
             CreateLabel(displaySection, "Display Label", "화면", 22, brassColor, TextAnchor.MiddleLeft, 32f, FontStyle.Bold);
+            CreateLabel(displaySection, "Resolution Label", "해상도", 19, parchmentColor, TextAnchor.MiddleLeft, 30f, FontStyle.Bold);
+            RectTransform resolutionRow = CreateRow(displaySection, "Resolution Row", 54f, 10f);
+            for (int index = 0; index < ResolutionPresets.Length; index++)
+            {
+                int capturedIndex = index;
+                resolutionSegments.Add(CreateSegment(resolutionRow, GetResolutionLabel(index), index, delegate { SetResolutionIndex(capturedIndex); }));
+            }
+
             fullScreenToggle = CreateToggle(displaySection, "전체 화면", fullScreenEnabled, delegate(bool value) { fullScreenEnabled = value; });
             screenShakeToggle = CreateToggle(displaySection, "피격 흔들림", screenShakeEnabled, delegate(bool value) { screenShakeEnabled = value; });
 
@@ -665,15 +702,14 @@ namespace NHN.Menu
         {
             RefreshSegmentList(createModeSegments, selectedMode);
             RefreshSegmentList(matchmakingModeSegments, matchmakingMode);
+            RefreshSegmentList(resolutionSegments, selectedResolutionIndex);
 
             int allowedMax = selectedMode == GameMode.Gomoku ? 4 : 2;
             foreach (SegmentOption<int> option in playerCountSegments)
             {
                 bool allowed = option.Value <= allowedMax;
                 bool selected = allowed && option.Value == createPlayerCount;
-                option.Button.interactable = allowed;
-                option.Background.color = selected ? brassColor : allowed ? panelDeepColor : disabledColor;
-                option.Label.color = selected ? inkColor : allowed ? parchmentColor : parchmentMutedColor;
+                SetSegmentVisual(option, selected, allowed);
             }
         }
 
@@ -682,9 +718,21 @@ namespace NHN.Menu
             foreach (SegmentOption<T> option in options)
             {
                 bool selected = EqualityComparer<T>.Default.Equals(option.Value, selectedValue);
-                option.Background.color = selected ? brassColor : panelDeepColor;
-                option.Label.color = selected ? inkColor : parchmentColor;
+                SetSegmentVisual(option, selected, true);
             }
+        }
+
+        private void SetSegmentVisual<T>(SegmentOption<T> option, bool selected, bool allowed)
+        {
+            option.Button.interactable = allowed;
+            ApplyButtonSkin(option.Button, option.Background, selected ? brassColor : panelDeepColor, !allowed);
+            option.Label.color = selected ? inkColor : allowed ? parchmentColor : parchmentMutedColor;
+        }
+
+        private void SetResolutionIndex(int index)
+        {
+            selectedResolutionIndex = Mathf.Clamp(index, 0, ResolutionPresets.Length - 1);
+            RefreshSegments();
         }
 
         private void UpdateCreateSummary()
@@ -851,6 +899,7 @@ namespace NHN.Menu
             aimSensitivity = 1f;
             fullScreenEnabled = Screen.fullScreen;
             screenShakeEnabled = true;
+            selectedResolutionIndex = DefaultResolutionIndex;
             ApplySettingsValuesToUi();
             SavePreferences();
             SetStatus("설정을 기본값으로 되돌렸다.");
@@ -892,6 +941,49 @@ namespace NHN.Menu
             {
                 sensitivitySlider.value = aimSensitivity;
             }
+
+            RefreshSegments();
+        }
+
+        private Vector2Int GetSelectedResolution()
+        {
+            int index = Mathf.Clamp(selectedResolutionIndex, 0, ResolutionPresets.Length - 1);
+            return ResolutionPresets[index];
+        }
+
+        private static string GetResolutionLabel(int index)
+        {
+            Vector2Int resolution = ResolutionPresets[Mathf.Clamp(index, 0, ResolutionPresets.Length - 1)];
+            return resolution.x + " x " + resolution.y;
+        }
+
+        private static int FindClosestResolutionPreset(int width, int height)
+        {
+            int bestIndex = DefaultResolutionIndex;
+            int bestScore = int.MaxValue;
+            for (int index = 0; index < ResolutionPresets.Length; index++)
+            {
+                Vector2Int preset = ResolutionPresets[index];
+                int score = Mathf.Abs(preset.x - width) + Mathf.Abs(preset.y - height);
+                if (score < bestScore)
+                {
+                    bestIndex = index;
+                    bestScore = score;
+                }
+            }
+
+            return bestIndex;
+        }
+
+        private void ApplySelectedResolution()
+        {
+            Vector2Int resolution = GetSelectedResolution();
+            if (resolution.x <= 0 || resolution.y <= 0)
+            {
+                return;
+            }
+
+            Screen.SetResolution(resolution.x, resolution.y, fullScreenEnabled);
         }
 
         private void EnsureMatchClient()
@@ -1305,23 +1397,11 @@ namespace NHN.Menu
             }
 
             Image image = rect.gameObject.AddComponent<Image>();
-            Sprite buttonSprite = SelectButtonSprite(background);
-            ApplyUiSprite(image, buttonSprite, background);
             image.raycastTarget = true;
 
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            if (buttonSprite != null)
-            {
-                button.transition = Selectable.Transition.SpriteSwap;
-                SetButtonSpriteState(button, SelectButtonHoverSprite(background), SelectButtonPressedSprite(background));
-                SetButtonColors(button, Color.white);
-            }
-            else
-            {
-                SetButtonColors(button, background);
-            }
-
+            ApplyButtonSkin(button, image, background, false);
             button.onClick.AddListener(onClick);
 
             Outline outline = rect.gameObject.AddComponent<Outline>();
@@ -1653,6 +1733,36 @@ namespace NHN.Menu
             }
 
             return buttonDarkSprite;
+        }
+
+        private void ApplyButtonSkin(Button button, Image image, Color background, bool disabledVisual)
+        {
+            Sprite buttonSprite = disabledVisual && buttonDisabledSprite != null ? buttonDisabledSprite : SelectButtonSprite(background);
+            ApplyUiSprite(image, buttonSprite, disabledVisual ? disabledColor : background);
+
+            if (buttonSprite == null)
+            {
+                button.transition = Selectable.Transition.ColorTint;
+                SetButtonColors(button, disabledVisual ? disabledColor : background);
+                return;
+            }
+
+            button.transition = Selectable.Transition.SpriteSwap;
+            if (disabledVisual)
+            {
+                SpriteState disabledState = button.spriteState;
+                disabledState.highlightedSprite = buttonSprite;
+                disabledState.pressedSprite = buttonSprite;
+                disabledState.selectedSprite = buttonSprite;
+                disabledState.disabledSprite = buttonSprite;
+                button.spriteState = disabledState;
+            }
+            else
+            {
+                SetButtonSpriteState(button, SelectButtonHoverSprite(background), SelectButtonPressedSprite(background));
+            }
+
+            SetButtonColors(button, Color.white);
         }
 
         private Sprite SelectButtonHoverSprite(Color background)

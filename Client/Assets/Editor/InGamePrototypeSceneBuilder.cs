@@ -12,12 +12,22 @@ public static class InGamePrototypeSceneBuilder
 {
     private const string ScenePath = "Assets/Scenes/InGamePrototype.unity";
     private const string PaperPath = "Assets/Sprite/GomokuPaper.png";
+    private const string PaperIdlePath = "Assets/Sprite/Generated/PaperBoardBlankIdleGenerated.png";
+    private const string PaperFlyingPath = "Assets/Sprite/Generated/PaperBoardBlankFlyingGenerated.png";
+    private const string PaperAttachedPath = "Assets/Sprite/Generated/PaperBoardBlankAttachedGenerated.png";
+    private const string PaperFlightFramePathPrefix = "Assets/Sprite/Generated/PaperFlightFrames/PaperBoardFlyingFrame";
+    private const string PaperPromptIdleFramePathPrefix = "Assets/Sprite/Generated/PaperPromptAnimations/Idle/PaperIdleFrame";
+    private const string PaperPromptFlyingFramePathPrefix = "Assets/Sprite/Generated/PaperPromptAnimations/Flying/PaperFlyingFrame";
+    private const string PaperPromptUnfoldFramePathPrefix = "Assets/Sprite/Generated/PaperPromptAnimations/Unfold/PaperUnfoldFrame";
     private const string BulletHolePath = "Assets/Sprite/Generated/BulletHoleGenerated.png";
     private const string CrosshairPath = "Assets/Sprite/CrossHairRed.png";
     private const string CowboyPath = "Assets/Sprite/CowBoy.png";
     private const string CylinderPath = "Assets/Sprite/Silinder_front_south.png";
     private const string ScarecrowPath = "Assets/Sprite/Generated/ScarecrowCarrierGenerated.png";
     private const string ScarecrowDownPath = "Assets/Sprite/Generated/ScarecrowDownGenerated.png";
+    private const string ScarecrowIdleFramePathPrefix = "Assets/Sprite/Generated/ScarecrowPromptAnimations/Idle/ScarecrowIdleFrame";
+    private const string ScarecrowAttackedFramePathPrefix = "Assets/Sprite/Generated/ScarecrowPromptAnimations/Attacked/ScarecrowAttackedFrame";
+    private const string ScarecrowDeathFramePathPrefix = "Assets/Sprite/Generated/ScarecrowPromptAnimations/Death/ScarecrowDeathFrame";
     private const string FryingPanPath = "Assets/Sprite/Generated/FryingPanGenerated.png";
     private const string OutlawBanditPath = "Assets/Sprite/Generated/OutlawBanditGenerated.png";
     private const string TripleShotPath = "Assets/Sprite/Generated/TripleShotPowerupGenerated.png";
@@ -33,14 +43,23 @@ public static class InGamePrototypeSceneBuilder
         Camera camera = CreateCamera();
         CreateGlobalLight();
 
-        Sprite[] paperSprites = LoadSprites(PaperPath);
+        Sprite[] paperSprites = LoadPaperStateSprites(
+            out int paperIdleFrameCount,
+            out int paperFlyingFrameStartIndex,
+            out int paperFlyingFrameCount,
+            out int paperUnfoldFrameStartIndex,
+            out int paperUnfoldFrameCount,
+            out int paperAttachedFrameIndex);
         Sprite gameplayBackgroundSprite = LoadFirstSprite(GameplayBackgroundPath);
         Sprite bulletHoleSprite = LoadFirstSprite(BulletHolePath);
         Sprite crosshairSprite = LoadFirstSprite(CrosshairPath);
         Sprite[] cowboySprites = LoadSprites(CowboyPath);
         Sprite cylinderSprite = LoadFirstSprite(CylinderPath);
-        Sprite scarecrowSprite = LoadFirstSprite(ScarecrowPath);
-        Sprite scarecrowDownSprite = LoadFirstSprite(ScarecrowDownPath);
+        Sprite[] scarecrowIdleFrames = LoadSequentialSprites(ScarecrowIdleFramePathPrefix, 16);
+        Sprite[] scarecrowAttackedFrames = LoadSequentialSprites(ScarecrowAttackedFramePathPrefix, 16);
+        Sprite[] scarecrowDeathFrames = LoadSequentialSprites(ScarecrowDeathFramePathPrefix, 16);
+        Sprite scarecrowSprite = scarecrowIdleFrames.FirstOrDefault() != null ? scarecrowIdleFrames.FirstOrDefault() : LoadFirstSprite(ScarecrowPath);
+        Sprite scarecrowDownSprite = scarecrowDeathFrames.LastOrDefault() != null ? scarecrowDeathFrames.LastOrDefault() : LoadFirstSprite(ScarecrowDownPath);
         Sprite fryingPanSprite = LoadFirstSprite(FryingPanPath);
         Sprite outlawBanditSprite = LoadFirstSprite(OutlawBanditPath);
         Sprite tripleShotSprite = LoadFirstSprite(TripleShotPath);
@@ -52,7 +71,8 @@ public static class InGamePrototypeSceneBuilder
         PaperBoardTarget boardTarget = boardObject.GetComponent<PaperBoardTarget>();
         PaperWindMotion windMotion = boardObject.GetComponent<PaperWindMotion>();
         PaperBoardWarp boardWarp = boardObject.GetComponent<PaperBoardWarp>();
-        ScarecrowPaperCarrier scarecrowCarrier = CreateScarecrowCarrier(boardObject.transform, windMotion, boardWarp, scarecrowSprite, scarecrowDownSprite);
+        PaperBoardGridRenderer gridRenderer = boardObject.GetComponent<PaperBoardGridRenderer>();
+        ScarecrowPaperCarrier scarecrowCarrier = CreateScarecrowCarrier(camera, boardObject.transform, windMotion, boardWarp, gridRenderer, scarecrowSprite, scarecrowDownSprite, scarecrowIdleFrames, scarecrowAttackedFrames, scarecrowDeathFrames, paperIdleFrameCount, paperFlyingFrameStartIndex, paperFlyingFrameCount, paperUnfoldFrameStartIndex, paperUnfoldFrameCount, paperAttachedFrameIndex);
         RoundResultBoardOverlay resultOverlay = CreateResultOverlay(paperSprites.FirstOrDefault(), bulletHoleSprite);
 
         Transform markRoot = new GameObject("Shot Marks").transform;
@@ -68,6 +88,7 @@ public static class InGamePrototypeSceneBuilder
         controller.boardTarget = boardTarget;
         controller.windMotion = windMotion;
         controller.boardWarp = boardWarp;
+        controller.boardGridRenderer = gridRenderer;
         controller.scarecrowCarrier = scarecrowCarrier;
         controller.markRoot = markRoot;
         controller.bulletHoleSprite = bulletHoleSprite;
@@ -182,6 +203,15 @@ public static class InGamePrototypeSceneBuilder
         boardTarget.gridInsetNormalized = 0.1f;
         boardTarget.gridNormalizedRect = new Rect(0.1f, 0.1f, 0.8f, 0.8f);
 
+        PaperBoardGridRenderer gridRenderer = boardObject.AddComponent<PaperBoardGridRenderer>();
+        gridRenderer.boardTarget = boardTarget;
+        gridRenderer.syncFromTarget = true;
+        gridRenderer.lineWidth = 0.018f;
+        gridRenderer.sortingOrder = 16;
+        gridRenderer.lineColor = new Color32(84, 48, 22, 210);
+        gridRenderer.Rebuild();
+        gridRenderer.SetVisible(false);
+
         PaperWindMotion windMotion = boardObject.AddComponent<PaperWindMotion>();
         windMotion.spriteRenderer = renderer;
         windMotion.frames = paperSprites;
@@ -205,7 +235,7 @@ public static class InGamePrototypeSceneBuilder
         return boardObject;
     }
 
-    private static ScarecrowPaperCarrier CreateScarecrowCarrier(Transform boardTransform, PaperWindMotion windMotion, PaperBoardWarp boardWarp, Sprite scarecrowSprite, Sprite scarecrowDownSprite)
+    private static ScarecrowPaperCarrier CreateScarecrowCarrier(Camera camera, Transform boardTransform, PaperWindMotion windMotion, PaperBoardWarp boardWarp, PaperBoardGridRenderer gridRenderer, Sprite scarecrowSprite, Sprite scarecrowDownSprite, Sprite[] scarecrowIdleFrames, Sprite[] scarecrowAttackedFrames, Sprite[] scarecrowDeathFrames, int paperIdleFrameCount, int paperFlyingFrameStartIndex, int paperFlyingFrameCount, int paperUnfoldFrameStartIndex, int paperUnfoldFrameCount, int paperAttachedFrameIndex)
     {
         GameObject carrierObject = new GameObject("Scarecrow Paper Carrier");
         carrierObject.transform.position = new Vector3(0f, 0.35f, 0f);
@@ -214,16 +244,44 @@ public static class InGamePrototypeSceneBuilder
         carrier.boardTransform = boardTransform;
         carrier.boardWindMotion = windMotion;
         carrier.boardWarp = boardWarp;
+        carrier.boardGridRenderer = gridRenderer;
+        carrier.targetCamera = camera;
+        carrier.autoLayoutScarecrows = true;
         carrier.maxHealth = 8;
-        carrier.fallDuration = 0.6f;
+        carrier.fallDuration = 1.9f;
+        carrier.attachApproachDuration = 0.5f;
         carrier.respawnDelay = 0.8f;
+        carrier.moveScarecrow = false;
         carrier.moveSpeed = 4.4f;
         carrier.moveBounds = new Vector2(3.65f, 1.75f);
+        carrier.paperFlightBounds = new Vector2(4.2f, 2.35f);
+        carrier.paperFlightSpeed = 9.8f;
         carrier.skyY = 6.45f;
+        carrier.scarecrowLocalPositions = new[]
+        {
+            new Vector3(-3f, -0.2f, 0f),
+            new Vector3(-1f, 0.45f, 0f),
+            new Vector3(1.1f, 0.25f, 0f),
+            new Vector3(3f, -0.12f, 0f)
+        };
         carrier.paperSocketLocalPosition = new Vector3(0f, 0.78f, -0.05f);
         carrier.paperAttachedScale = boardTransform.localScale;
         carrier.scarecrowSprite = scarecrowSprite;
         carrier.knockedDownSprite = scarecrowDownSprite;
+        carrier.scarecrowIdleFrames = scarecrowIdleFrames;
+        carrier.scarecrowAttackedFrames = scarecrowAttackedFrames;
+        carrier.scarecrowDeathFrames = scarecrowDeathFrames;
+        carrier.scarecrowIdleFrameRate = 5f;
+        carrier.scarecrowAttackedFrameRate = 14f;
+        carrier.scarecrowDeathFrameRate = 12f;
+        carrier.idlePaperFrameIndex = 0;
+        carrier.idlePaperFrameCount = paperIdleFrameCount;
+        carrier.flyingPaperFrameIndex = paperFlyingFrameStartIndex;
+        carrier.flyingPaperFrameStartIndex = paperFlyingFrameStartIndex;
+        carrier.flyingPaperFrameCount = paperFlyingFrameCount;
+        carrier.unfoldPaperFrameStartIndex = paperUnfoldFrameStartIndex;
+        carrier.unfoldPaperFrameCount = paperUnfoldFrameCount;
+        carrier.attachedPaperFrameIndex = paperAttachedFrameIndex;
         carrier.spriteWorldHeight = 3.5f;
         return carrier;
     }
@@ -251,10 +309,21 @@ public static class InGamePrototypeSceneBuilder
         overlay.markerRoot = markerRoot;
         overlay.bulletHoleSprite = bulletHoleSprite;
         overlay.boardWorldSize = new Vector2(6.6f, 6.6f);
+        overlay.boardImageScaleMultiplier = 1.18f;
         overlay.gridInsetNormalized = 0.1f;
         overlay.gridNormalizedRect = new Rect(0.1f, 0.1f, 0.8f, 0.8f);
         overlay.gomokuMarkerWorldSize = 0.34f;
         overlay.ticTacToeMarkerWorldSize = 1.25f;
+
+        PaperBoardGridRenderer gridRenderer = overlayObject.AddComponent<PaperBoardGridRenderer>();
+        gridRenderer.syncFromTarget = false;
+        gridRenderer.boardWorldSize = overlay.boardWorldSize;
+        gridRenderer.gridNormalizedRect = overlay.gridNormalizedRect;
+        gridRenderer.lineWidth = 0.026f;
+        gridRenderer.sortingOrder = overlay.markerSortingBase;
+        gridRenderer.lineColor = new Color32(84, 48, 22, 225);
+        overlay.gridRenderer = gridRenderer;
+
         overlayObject.SetActive(false);
         return overlay;
     }
@@ -320,6 +389,97 @@ public static class InGamePrototypeSceneBuilder
     private static Sprite LoadFirstSprite(string assetPath)
     {
         return LoadSprites(assetPath).FirstOrDefault();
+    }
+
+    private static Sprite[] LoadPaperStateSprites(out int idleFrameCount, out int flyingFrameStartIndex, out int flyingFrameCount, out int unfoldFrameStartIndex, out int unfoldFrameCount, out int attachedFrameIndex)
+    {
+        Sprite[] idleFrames = LoadSequentialSprites(PaperPromptIdleFramePathPrefix, 16);
+        Sprite[] flyingFrames = LoadSequentialSprites(PaperPromptFlyingFramePathPrefix, 32);
+        Sprite[] unfoldFrames = LoadSequentialSprites(PaperPromptUnfoldFramePathPrefix, 16);
+        Sprite idleSprite = LoadFirstSprite(PaperIdlePath);
+        Sprite attachedSprite = LoadFirstSprite(PaperAttachedPath);
+        Sprite[] legacyFlightFrames = flyingFrames.Length == 0 ? LoadPaperFlightFrames() : new Sprite[0];
+        Sprite fallbackFlyingSprite = flyingFrames.Length == 0 && legacyFlightFrames.Length == 0 ? LoadFirstSprite(PaperFlyingPath) : null;
+
+        List<Sprite> stateSprites = new List<Sprite>();
+        if (idleFrames.Length > 0)
+        {
+            stateSprites.AddRange(idleFrames);
+            idleFrameCount = idleFrames.Length;
+        }
+        else if (idleSprite != null)
+        {
+            stateSprites.Add(idleSprite);
+            idleFrameCount = 1;
+        }
+        else
+        {
+            idleFrameCount = 1;
+        }
+
+        flyingFrameStartIndex = stateSprites.Count;
+        if (flyingFrames.Length > 0)
+        {
+            stateSprites.AddRange(flyingFrames);
+            flyingFrameCount = flyingFrames.Length;
+        }
+        else if (legacyFlightFrames.Length > 0)
+        {
+            stateSprites.AddRange(legacyFlightFrames);
+            flyingFrameCount = legacyFlightFrames.Length;
+        }
+        else if (fallbackFlyingSprite != null)
+        {
+            stateSprites.Add(fallbackFlyingSprite);
+            flyingFrameCount = 1;
+        }
+        else
+        {
+            flyingFrameCount = 1;
+        }
+
+        unfoldFrameStartIndex = stateSprites.Count;
+        if (unfoldFrames.Length > 0)
+        {
+            stateSprites.AddRange(unfoldFrames);
+            unfoldFrameCount = unfoldFrames.Length;
+            attachedFrameIndex = stateSprites.Count - 1;
+        }
+        else if (attachedSprite != null)
+        {
+            stateSprites.Add(attachedSprite);
+            unfoldFrameCount = 1;
+            attachedFrameIndex = stateSprites.Count - 1;
+        }
+        else
+        {
+            unfoldFrameCount = 1;
+            unfoldFrameStartIndex = Mathf.Max(0, stateSprites.Count - 1);
+            attachedFrameIndex = unfoldFrameStartIndex;
+        }
+
+        stateSprites.RemoveAll(sprite => sprite == null);
+        return stateSprites.Count > 0 ? stateSprites.ToArray() : LoadSprites(PaperPath);
+    }
+
+    private static Sprite[] LoadPaperFlightFrames()
+    {
+        return LoadSequentialSprites(PaperFlightFramePathPrefix, 32);
+    }
+
+    private static Sprite[] LoadSequentialSprites(string assetPathPrefix, int maxFrameCount)
+    {
+        List<Sprite> frames = new List<Sprite>();
+        for (int index = 0; index < maxFrameCount; index++)
+        {
+            Sprite sprite = LoadFirstSprite($"{assetPathPrefix}{index:00}.png");
+            if (sprite != null)
+            {
+                frames.Add(sprite);
+            }
+        }
+
+        return frames.ToArray();
     }
 
     private static Texture2D LoadTexture(string assetPath)

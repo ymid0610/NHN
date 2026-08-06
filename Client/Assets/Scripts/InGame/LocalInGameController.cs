@@ -14,12 +14,23 @@ namespace NHN.InGame
         private const string PrefBlockOccupied = "NHN.BlockOccupiedCells";
         private const string PrefAllowOverline = "NHN.AllowOverline";
         private const string PrefItemsEnabled = "NHN.ItemsEnabled";
+        private const string PaperIdleResourcePath = "Sprite/Generated/PaperBoardBlankIdleGenerated";
+        private const string PaperFlyingResourcePath = "Sprite/Generated/PaperBoardBlankFlyingGenerated";
+        private const string PaperAttachedResourcePath = "Sprite/Generated/PaperBoardBlankAttachedGenerated";
+        private const string PaperFlightFrameResourcePrefix = "Sprite/Generated/PaperFlightFrames/PaperBoardFlyingFrame";
+        private const string PaperPromptIdleFrameResourcePrefix = "Sprite/Generated/PaperPromptAnimations/Idle/PaperIdleFrame";
+        private const string PaperPromptFlyingFrameResourcePrefix = "Sprite/Generated/PaperPromptAnimations/Flying/PaperFlyingFrame";
+        private const string PaperPromptUnfoldFrameResourcePrefix = "Sprite/Generated/PaperPromptAnimations/Unfold/PaperUnfoldFrame";
+        private const string ScarecrowIdleFrameResourcePrefix = "Sprite/Generated/ScarecrowPromptAnimations/Idle/ScarecrowIdleFrame";
+        private const string ScarecrowAttackedFrameResourcePrefix = "Sprite/Generated/ScarecrowPromptAnimations/Attacked/ScarecrowAttackedFrame";
+        private const string ScarecrowDeathFrameResourcePrefix = "Sprite/Generated/ScarecrowPromptAnimations/Death/ScarecrowDeathFrame";
 
         [Header("Scene References")]
         public Camera targetCamera;
         public PaperBoardTarget boardTarget;
         public PaperWindMotion windMotion;
         public PaperBoardWarp boardWarp;
+        public PaperBoardGridRenderer boardGridRenderer;
         public ScarecrowPaperCarrier scarecrowCarrier;
         public Transform markRoot;
         public Sprite bulletHoleSprite;
@@ -43,6 +54,7 @@ namespace NHN.InGame
 
         [Header("Board Size")]
         public Vector2 inGameBoardWorldSize = new Vector2(3.6f, 3.6f);
+        public float resultBoardImageScaleMultiplier = 1.18f;
 
         [Header("Marker")]
         public float gomokuMarkerWorldSize = 0.17f;
@@ -63,6 +75,16 @@ namespace NHN.InGame
         private int winner;
         private string statusMessage = "Ready";
         private bool showingResult;
+        private int generatedIdleFrameIndex;
+        private int generatedIdleFrameCount = 1;
+        private int generatedFlyingFrameStartIndex = 1;
+        private int generatedFlyingFrameCount = 1;
+        private int generatedUnfoldFrameStartIndex = 2;
+        private int generatedUnfoldFrameCount = 1;
+        private int generatedAttachedFrameIndex = 2;
+        private Sprite[] generatedScarecrowIdleFrames = new Sprite[0];
+        private Sprite[] generatedScarecrowAttackedFrames = new Sprite[0];
+        private Sprite[] generatedScarecrowDeathFrames = new Sprite[0];
 
         public int CurrentPlayer => currentPlayer;
         public int RemainingShots => remainingShots;
@@ -80,6 +102,9 @@ namespace NHN.InGame
         {
             ApplyMenuLaunchOptions();
             EnsureBoardWarp();
+            EnsureGeneratedPaperSprites();
+            EnsureBoardGridRenderer();
+            EnsureGeneratedScarecrowSprites();
             EnsureScarecrowCarrier();
             EnsureResultOverlay();
             ResetMatch();
@@ -100,6 +125,8 @@ namespace NHN.InGame
 
         private void Update()
         {
+            SyncWorldShotMarksVisibility();
+
             if (WasResetPressed())
             {
                 ResetMatch();
@@ -161,6 +188,7 @@ namespace NHN.InGame
             }
 
             ClearMarks();
+            SyncWorldShotMarksVisibility();
         }
 
         public void AdvanceTurn()
@@ -206,6 +234,8 @@ namespace NHN.InGame
             {
                 resultOverlay.Hide();
             }
+
+            SyncWorldShotMarksVisibility();
         }
 
         public void SetMode(GameMode mode)
@@ -273,6 +303,7 @@ namespace NHN.InGame
             {
                 statusMessage = targetDown ? "Scarecrow down" : $"Already shot {cell.x + 1}, {cell.y + 1}";
                 ResolveAmmoAfterShot();
+                SyncWorldShotMarksVisibility();
                 return;
             }
 
@@ -291,6 +322,7 @@ namespace NHN.InGame
             statusMessage = targetDown ? "Scarecrow down" : $"Hit {cell.x + 1}, {cell.y + 1}";
 
             ResolveAmmoAfterShot();
+            SyncWorldShotMarksVisibility();
         }
 
         private void MoveToNextPlayer()
@@ -310,6 +342,8 @@ namespace NHN.InGame
             showingResult = true;
             statusMessage = message;
             windMotion?.SetResultView(true);
+            boardGridRenderer?.SetVisible(false);
+            SetWorldShotMarksVisible(false);
             EnsureResultOverlay();
 
             if (resultOverlay != null)
@@ -321,6 +355,7 @@ namespace NHN.InGame
                 }
 
                 resultOverlay.playerColors = playerColors;
+                resultOverlay.boardImageScaleMultiplier = resultBoardImageScaleMultiplier;
                 resultOverlay.gomokuMarkerWorldSize = gomokuMarkerWorldSize * 1.2f;
                 resultOverlay.ticTacToeMarkerWorldSize = ticTacToeMarkerWorldSize * 1.3f;
                 resultOverlay.Show(resultBoardSprite, shotRecords, GetBoardSize(), gameMode);
@@ -353,6 +388,18 @@ namespace NHN.InGame
 
             if (resultOverlay != null)
             {
+                if (resultOverlay.gridRenderer == null)
+                {
+                    resultOverlay.gridRenderer = resultOverlay.GetComponent<PaperBoardGridRenderer>();
+                }
+
+                if (resultOverlay.gridRenderer == null)
+                {
+                    resultOverlay.gridRenderer = resultOverlay.gameObject.AddComponent<PaperBoardGridRenderer>();
+                    resultOverlay.gridRenderer.syncFromTarget = false;
+                }
+
+                resultOverlay.boardImageScaleMultiplier = resultBoardImageScaleMultiplier;
                 return;
             }
 
@@ -376,6 +423,9 @@ namespace NHN.InGame
             resultOverlay.boardRenderer = boardRenderer;
             resultOverlay.markerRoot = resultMarkerRoot;
             resultOverlay.bulletHoleSprite = bulletHoleSprite;
+            resultOverlay.boardImageScaleMultiplier = resultBoardImageScaleMultiplier;
+            resultOverlay.gridRenderer = overlayObject.AddComponent<PaperBoardGridRenderer>();
+            resultOverlay.gridRenderer.syncFromTarget = false;
             resultOverlay.Hide();
         }
 
@@ -400,6 +450,137 @@ namespace NHN.InGame
             boardWarp.windMotion = windMotion;
         }
 
+        private void EnsureGeneratedPaperSprites()
+        {
+            Sprite idleSprite = Resources.Load<Sprite>(PaperIdleResourcePath);
+            Sprite flyingSprite = Resources.Load<Sprite>(PaperFlyingResourcePath);
+            Sprite attachedSprite = Resources.Load<Sprite>(PaperAttachedResourcePath);
+            List<Sprite> idleSprites = LoadGeneratedFrames(PaperPromptIdleFrameResourcePrefix, 16);
+            List<Sprite> flyingSprites = LoadGeneratedFrames(PaperPromptFlyingFrameResourcePrefix, 32);
+            List<Sprite> unfoldSprites = LoadGeneratedFrames(PaperPromptUnfoldFrameResourcePrefix, 16);
+            List<Sprite> legacyFlyingSprites = flyingSprites.Count == 0 ? LoadGeneratedFlightFrames() : new List<Sprite>();
+
+            if (idleSprite == null && flyingSprite == null && attachedSprite == null &&
+                idleSprites.Count == 0 && flyingSprites.Count == 0 && unfoldSprites.Count == 0 && legacyFlyingSprites.Count == 0)
+            {
+                return;
+            }
+
+            List<Sprite> frames = new List<Sprite>();
+            generatedIdleFrameIndex = frames.Count;
+            if (idleSprites.Count > 0)
+            {
+                frames.AddRange(idleSprites);
+                generatedIdleFrameCount = idleSprites.Count;
+            }
+            else if (idleSprite != null)
+            {
+                frames.Add(idleSprite);
+                generatedIdleFrameCount = 1;
+            }
+
+            generatedFlyingFrameStartIndex = frames.Count;
+            if (flyingSprites.Count > 0)
+            {
+                frames.AddRange(flyingSprites);
+                generatedFlyingFrameCount = flyingSprites.Count;
+            }
+            else if (legacyFlyingSprites.Count > 0)
+            {
+                frames.AddRange(legacyFlyingSprites);
+                generatedFlyingFrameCount = legacyFlyingSprites.Count;
+            }
+            else if (flyingSprite != null)
+            {
+                frames.Add(flyingSprite);
+                generatedFlyingFrameCount = 1;
+            }
+
+            generatedUnfoldFrameStartIndex = frames.Count;
+            if (unfoldSprites.Count > 0)
+            {
+                frames.AddRange(unfoldSprites);
+                generatedUnfoldFrameCount = unfoldSprites.Count;
+                generatedAttachedFrameIndex = frames.Count - 1;
+            }
+            else if (attachedSprite != null)
+            {
+                frames.Add(attachedSprite);
+                generatedUnfoldFrameCount = 1;
+                generatedAttachedFrameIndex = frames.Count - 1;
+            }
+            else if (frames.Count > 0)
+            {
+                generatedUnfoldFrameStartIndex = frames.Count - 1;
+                generatedUnfoldFrameCount = 1;
+                generatedAttachedFrameIndex = frames.Count - 1;
+            }
+
+            if (windMotion != null)
+            {
+                windMotion.frames = frames.ToArray();
+                if (windMotion.spriteRenderer != null && frames.Count > 0)
+                {
+                    windMotion.spriteRenderer.sprite = frames[Mathf.Clamp(generatedIdleFrameIndex, 0, frames.Count - 1)];
+                }
+            }
+
+            if (frames.Count > 0)
+            {
+                resultBoardSprite = frames[Mathf.Clamp(generatedIdleFrameIndex, 0, frames.Count - 1)];
+            }
+        }
+
+        private static List<Sprite> LoadGeneratedFlightFrames()
+        {
+            return LoadGeneratedFrames(PaperFlightFrameResourcePrefix, 32);
+        }
+
+        private void EnsureGeneratedScarecrowSprites()
+        {
+            generatedScarecrowIdleFrames = LoadGeneratedFrames(ScarecrowIdleFrameResourcePrefix, 16).ToArray();
+            generatedScarecrowAttackedFrames = LoadGeneratedFrames(ScarecrowAttackedFrameResourcePrefix, 16).ToArray();
+            generatedScarecrowDeathFrames = LoadGeneratedFrames(ScarecrowDeathFrameResourcePrefix, 16).ToArray();
+        }
+
+        private static List<Sprite> LoadGeneratedFrames(string resourcePrefix, int maxFrameCount)
+        {
+            List<Sprite> sprites = new List<Sprite>();
+            for (int index = 0; index < maxFrameCount; index++)
+            {
+                Sprite sprite = Resources.Load<Sprite>($"{resourcePrefix}{index:00}");
+                if (sprite != null)
+                {
+                    sprites.Add(sprite);
+                }
+            }
+
+            return sprites;
+        }
+
+        private void EnsureBoardGridRenderer()
+        {
+            if (boardTarget == null)
+            {
+                return;
+            }
+
+            if (boardGridRenderer == null)
+            {
+                boardGridRenderer = boardTarget.GetComponent<PaperBoardGridRenderer>();
+            }
+
+            if (boardGridRenderer == null)
+            {
+                boardGridRenderer = boardTarget.gameObject.AddComponent<PaperBoardGridRenderer>();
+            }
+
+            boardGridRenderer.boardTarget = boardTarget;
+            boardGridRenderer.syncFromTarget = true;
+            boardGridRenderer.RefreshFromTarget();
+            boardGridRenderer.SetVisible(false);
+        }
+
         private void EnsureScarecrowCarrier()
         {
             if (boardTarget == null)
@@ -421,7 +602,35 @@ namespace NHN.InGame
             scarecrowCarrier.boardTransform = boardTarget.transform;
             scarecrowCarrier.boardWindMotion = windMotion;
             scarecrowCarrier.boardWarp = boardWarp;
+            scarecrowCarrier.boardGridRenderer = boardGridRenderer;
+            scarecrowCarrier.targetCamera = targetCamera != null ? targetCamera : Camera.main;
+            scarecrowCarrier.autoLayoutScarecrows = true;
             scarecrowCarrier.paperAttachedScale = boardTarget.transform.localScale;
+            scarecrowCarrier.idlePaperFrameIndex = generatedIdleFrameIndex;
+            scarecrowCarrier.idlePaperFrameCount = Mathf.Max(1, generatedIdleFrameCount);
+            scarecrowCarrier.flyingPaperFrameIndex = generatedFlyingFrameStartIndex;
+            scarecrowCarrier.flyingPaperFrameStartIndex = generatedFlyingFrameStartIndex;
+            scarecrowCarrier.flyingPaperFrameCount = Mathf.Max(1, generatedFlyingFrameCount);
+            scarecrowCarrier.unfoldPaperFrameStartIndex = generatedUnfoldFrameStartIndex;
+            scarecrowCarrier.unfoldPaperFrameCount = Mathf.Max(1, generatedUnfoldFrameCount);
+            scarecrowCarrier.attachedPaperFrameIndex = generatedAttachedFrameIndex;
+
+            if (generatedScarecrowIdleFrames.Length > 0)
+            {
+                scarecrowCarrier.scarecrowIdleFrames = generatedScarecrowIdleFrames;
+                scarecrowCarrier.scarecrowSprite = generatedScarecrowIdleFrames[0];
+            }
+
+            if (generatedScarecrowAttackedFrames.Length > 0)
+            {
+                scarecrowCarrier.scarecrowAttackedFrames = generatedScarecrowAttackedFrames;
+            }
+
+            if (generatedScarecrowDeathFrames.Length > 0)
+            {
+                scarecrowCarrier.scarecrowDeathFrames = generatedScarecrowDeathFrames;
+                scarecrowCarrier.knockedDownSprite = generatedScarecrowDeathFrames[generatedScarecrowDeathFrames.Length - 1];
+            }
         }
 
         private void ApplyBoardSizing()
@@ -432,6 +641,21 @@ namespace NHN.InGame
             }
 
             boardTarget.boardWorldSize = inGameBoardWorldSize;
+            if (boardGridRenderer == null)
+            {
+                boardGridRenderer = boardTarget.GetComponent<PaperBoardGridRenderer>();
+            }
+
+            if (boardGridRenderer != null)
+            {
+                boardGridRenderer.boardTarget = boardTarget;
+                boardGridRenderer.RefreshFromTarget();
+                if (scarecrowCarrier != null)
+                {
+                    scarecrowCarrier.boardGridRenderer = boardGridRenderer;
+                }
+            }
+
             if (gomokuMarkerWorldSize > 0.22f)
             {
                 gomokuMarkerWorldSize = 0.17f;
@@ -496,6 +720,7 @@ namespace NHN.InGame
 
             WarpedBoardMarker warpedMarker = marker.AddComponent<WarpedBoardMarker>();
             warpedMarker.Configure(boardTarget, boardWarp, cell, visualTransform);
+            SyncWorldShotMarksVisibility();
         }
 
         private Color GetPlayerColor(int player)
@@ -514,6 +739,40 @@ namespace NHN.InGame
             for (int i = markRoot.childCount - 1; i >= 0; i--)
             {
                 Destroy(markRoot.GetChild(i).gameObject);
+            }
+        }
+
+        private void SyncWorldShotMarksVisibility()
+        {
+            SetWorldShotMarksVisible(ShouldShowWorldShotMarks());
+        }
+
+        private bool ShouldShowWorldShotMarks()
+        {
+            if (showingResult || winner != 0)
+            {
+                return false;
+            }
+
+            if (scarecrowCarrier != null && !scarecrowCarrier.CanShoot)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void SetWorldShotMarksVisible(bool visible)
+        {
+            if (markRoot == null)
+            {
+                return;
+            }
+
+            GameObject markRootObject = markRoot.gameObject;
+            if (markRootObject.activeSelf != visible)
+            {
+                markRootObject.SetActive(visible);
             }
         }
 

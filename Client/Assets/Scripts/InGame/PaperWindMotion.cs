@@ -25,10 +25,16 @@ namespace NHN.InGame
         private float pathTimer;
         private float pathDuration;
         private int pathStep;
+        private int staticFrameIndex;
+        private int animationStartIndex;
+        private int animationFrameCount;
+        private float animationStartTime;
+        private bool animationLoops = true;
         private bool initialized;
         private bool resultView;
 
         public bool IsResultView => resultView;
+        public bool IsAnimationComplete => resultView || animationLoops || animationFrameCount <= 1 || Mathf.FloorToInt((Time.time - animationStartTime) * Mathf.Max(1f, frameRate)) >= animationFrameCount - 1;
         public int CurrentFrameIndex { get; private set; }
         public float MotionPhase { get; private set; }
 
@@ -56,14 +62,14 @@ namespace NHN.InGame
                     transform.localScale = Vector3.Lerp(transform.localScale, baseLocalScale, Time.deltaTime * 9f);
                 }
 
-                CurrentFrameIndex = 0;
-                SetFrame(0);
+                CurrentFrameIndex = staticFrameIndex;
+                SetFrame(staticFrameIndex);
                 return;
             }
 
             float time = Time.time;
             MotionPhase = time;
-            CurrentFrameIndex = frames == null || frames.Length == 0 ? 0 : Mathf.FloorToInt(time * frameRate) % frames.Length;
+            CurrentFrameIndex = GetAnimatedFrameIndex(time);
             SetFrame(CurrentFrameIndex);
 
             if (!controlTransform)
@@ -90,11 +96,43 @@ namespace NHN.InGame
         {
             CacheBasePose();
             resultView = value;
+            staticFrameIndex = 0;
+            animationStartIndex = 0;
+            animationFrameCount = 0;
+            animationStartTime = Time.time;
+            animationLoops = true;
 
             if (!value)
             {
                 RestartTravel();
             }
+        }
+
+        public void PlayFrameRange(int startIndex, int frameCount)
+        {
+            PlayFrameRange(startIndex, frameCount, true);
+        }
+
+        public void PlayFrameRange(int startIndex, int frameCount, bool loop)
+        {
+            CacheBasePose();
+            resultView = false;
+            animationStartIndex = Mathf.Max(0, startIndex);
+            animationFrameCount = Mathf.Max(0, frameCount);
+            animationStartTime = Time.time;
+            animationLoops = loop;
+            CurrentFrameIndex = GetAnimatedFrameIndex(Time.time);
+            SetFrame(CurrentFrameIndex);
+        }
+
+        public void SetStaticFrame(int frameIndex)
+        {
+            CacheBasePose();
+            resultView = true;
+            staticFrameIndex = Mathf.Max(0, frameIndex);
+            animationLoops = true;
+            CurrentFrameIndex = staticFrameIndex;
+            SetFrame(staticFrameIndex);
         }
 
         public void RestartTravel()
@@ -130,6 +168,22 @@ namespace NHN.InGame
             }
 
             spriteRenderer.sprite = frames[Mathf.Clamp(index, 0, frames.Length - 1)];
+        }
+
+        private int GetAnimatedFrameIndex(float time)
+        {
+            int totalFrameCount = frames == null ? 0 : frames.Length;
+            if (totalFrameCount == 0)
+            {
+                return 0;
+            }
+
+            int start = Mathf.Clamp(animationStartIndex, 0, totalFrameCount - 1);
+            int availableCount = totalFrameCount - start;
+            int frameCount = animationFrameCount <= 0 ? availableCount : Mathf.Clamp(animationFrameCount, 1, availableCount);
+            int rawOffset = Mathf.Max(0, Mathf.FloorToInt((time - animationStartTime) * Mathf.Max(1f, frameRate)));
+            int offset = animationLoops ? rawOffset % frameCount : Mathf.Min(rawOffset, frameCount - 1);
+            return start + offset;
         }
 
         private Vector3 EvaluateTravelPath()

@@ -6,9 +6,11 @@ namespace NHN.InGame
     public sealed class RoundResultBoardOverlay : MonoBehaviour
     {
         public SpriteRenderer boardRenderer;
+        public PaperBoardGridRenderer gridRenderer;
         public Transform markerRoot;
         public Sprite bulletHoleSprite;
         public Vector2 boardWorldSize = new Vector2(6.6f, 6.6f);
+        public float boardImageScaleMultiplier = 1.18f;
         [Range(0f, 0.35f)] public float gridInsetNormalized = 0.1f;
         public Rect gridNormalizedRect = new Rect(0.1f, 0.1f, 0.8f, 0.8f);
         public float gomokuMarkerWorldSize = 0.34f;
@@ -36,6 +38,8 @@ namespace NHN.InGame
                 ScaleBoardVisual();
             }
 
+            RefreshGrid(boardSize);
+
             if (shots == null || bulletHoleSprite == null)
             {
                 return;
@@ -53,6 +57,29 @@ namespace NHN.InGame
             gameObject.SetActive(false);
         }
 
+        private void RefreshGrid(int boardSize)
+        {
+            if (gridRenderer == null)
+            {
+                gridRenderer = GetComponent<PaperBoardGridRenderer>();
+            }
+
+            if (gridRenderer == null)
+            {
+                return;
+            }
+
+            gridRenderer.syncFromTarget = false;
+            gridRenderer.boardSize = boardSize;
+            gridRenderer.boardWorldSize = boardWorldSize;
+            gridRenderer.gridInsetNormalized = gridInsetNormalized;
+            gridRenderer.gridNormalizedRect = GetSanitizedGridNormalizedRect();
+            gridRenderer.sortingOrder = markerSortingBase;
+            gridRenderer.lineWidth = 0.026f;
+            gridRenderer.Rebuild();
+            gridRenderer.SetVisible(true);
+        }
+
         private void ScaleBoardVisual()
         {
             if (boardRenderer.sprite == null)
@@ -61,7 +88,7 @@ namespace NHN.InGame
             }
 
             float spriteSize = Mathf.Max(boardRenderer.sprite.bounds.size.x, boardRenderer.sprite.bounds.size.y, 0.01f);
-            boardRenderer.transform.localScale = Vector3.one * (Mathf.Max(boardWorldSize.x, boardWorldSize.y) / spriteSize);
+            boardRenderer.transform.localScale = Vector3.one * (Mathf.Max(boardWorldSize.x, boardWorldSize.y) / spriteSize * Mathf.Max(0.1f, boardImageScaleMultiplier));
         }
 
         private void SpawnMarker(ShotRecord shot, int boardSize, GameMode mode)
