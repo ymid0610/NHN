@@ -1,0 +1,11 @@
+# Root-level generated files when the Unity project is opened from this folder.
+/Assets/
+/Library/
+/Logs/
+/obj/
+/Packages/
+/ProjectSettings/
+/Temp/
+/UserSettings/
+/*.csproj
+/*.sln

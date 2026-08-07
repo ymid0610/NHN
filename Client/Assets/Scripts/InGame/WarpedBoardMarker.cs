@@ -19,7 +19,18 @@ namespace NHN.InGame
             cell = gridCell;
             visualRoot = visual;
             visualCenterer = visualRoot != null ? visualRoot.GetComponent<SpriteBoundsCenterer>() : null;
+            if (visualCenterer != null && !visualCenterer.enabled)
+            {
+                visualCenterer = null;
+            }
+
             baseVisualScale = visualRoot != null ? visualRoot.localScale : Vector3.one;
+            ApplyWarp();
+        }
+
+        public void SetBaseVisualScale(Vector3 scale)
+        {
+            baseVisualScale = scale;
             ApplyWarp();
         }
 
@@ -61,7 +72,10 @@ namespace NHN.InGame
             if (visualRoot != null)
             {
                 visualRoot.localScale = activeWarp != null ? activeWarp.CellVisualScale(cell, baseVisualScale) : baseVisualScale;
-                visualCenterer?.CenterNow();
+                if (visualCenterer != null && visualCenterer.enabled)
+                {
+                    visualCenterer.CenterNow();
+                }
             }
         }
     }

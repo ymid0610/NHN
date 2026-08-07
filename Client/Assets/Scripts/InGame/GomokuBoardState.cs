@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NHN.InGame
@@ -45,8 +46,14 @@ namespace NHN.InGame
 
         public bool HasWinnerFrom(Vector2Int origin, int player, int winLength, bool allowOverline)
         {
+            return TryGetWinningLine(origin, player, winLength, allowOverline, null);
+        }
+
+        public bool TryGetWinningLine(Vector2Int origin, int player, int winLength, bool allowOverline, List<Vector2Int> winningCells)
+        {
             if (!IsInside(origin) || player <= 0)
             {
+                winningCells?.Clear();
                 return false;
             }
 
@@ -60,22 +67,63 @@ namespace NHN.InGame
 
             foreach (Vector2Int direction in directions)
             {
-                Vector2Int oppositeDirection = new Vector2Int(-direction.x, -direction.y);
-                int count = 1 + Count(origin, player, direction) + Count(origin, player, oppositeDirection);
-                if (allowOverline)
-                {
-                    if (count >= winLength)
-                    {
-                        return true;
-                    }
-                }
-                else if (count == winLength)
+                if (TryCollectWinningLine(origin, player, direction, winLength, allowOverline, winningCells))
                 {
                     return true;
                 }
             }
 
+            winningCells?.Clear();
             return false;
+        }
+
+        private bool TryCollectWinningLine(Vector2Int origin, int player, Vector2Int direction, int winLength, bool allowOverline, List<Vector2Int> winningCells)
+        {
+            List<Vector2Int> line = new List<Vector2Int>();
+            Vector2Int reverse = new Vector2Int(-direction.x, -direction.y);
+            Vector2Int current = origin;
+
+            while (IsInside(current + reverse) && cells[current.x + reverse.x, current.y + reverse.y] == player)
+            {
+                current += reverse;
+            }
+
+            int originIndex = 0;
+            while (IsInside(current) && cells[current.x, current.y] == player)
+            {
+                if (current == origin)
+                {
+                    originIndex = line.Count;
+                }
+
+                line.Add(current);
+                current += direction;
+            }
+
+            if (allowOverline)
+            {
+                if (line.Count < winLength)
+                {
+                    return false;
+                }
+            }
+            else if (line.Count != winLength)
+            {
+                return false;
+            }
+
+            if (winningCells != null)
+            {
+                winningCells.Clear();
+                int halfWindow = Mathf.Max(0, winLength / 2);
+                int startIndex = Mathf.Clamp(originIndex - halfWindow, 0, Mathf.Max(0, line.Count - winLength));
+                for (int i = 0; i < winLength; i++)
+                {
+                    winningCells.Add(line[startIndex + i]);
+                }
+            }
+
+            return true;
         }
 
         private int Count(Vector2Int origin, int player, Vector2Int direction)

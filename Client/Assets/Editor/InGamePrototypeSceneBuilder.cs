@@ -20,6 +20,7 @@ public static class InGamePrototypeSceneBuilder
     private const string PaperPromptFlyingFramePathPrefix = "Assets/Sprite/Generated/PaperPromptAnimations/Flying/PaperFlyingFrame";
     private const string PaperPromptUnfoldFramePathPrefix = "Assets/Sprite/Generated/PaperPromptAnimations/Unfold/PaperUnfoldFrame";
     private const string BulletHolePath = "Assets/Sprite/Generated/BulletHoleGenerated.png";
+    private const string BulletImpactFramePathPrefix = "Assets/Sprite/Generated/BulletImpactAnimation/Frames/BulletImpactFrame";
     private const string CrosshairPath = "Assets/Sprite/CrossHairRed.png";
     private const string CowboyPath = "Assets/Sprite/CowBoy.png";
     private const string CylinderPath = "Assets/Sprite/Silinder_front_south.png";
@@ -32,7 +33,7 @@ public static class InGamePrototypeSceneBuilder
     private const string OutlawBanditPath = "Assets/Sprite/Generated/OutlawBanditGenerated.png";
     private const string TripleShotPath = "Assets/Sprite/Generated/TripleShotPowerupGenerated.png";
     private const string CamelCarrierPath = "Assets/Sprite/Generated/CamelCarrierGenerated.png";
-    private const string HudPanelPath = "Assets/Sprite/Generated/PlayerHudPanelGenerated.png";
+    private const string HudPanelPath = "Assets/Sprite/Generated/PlayerHudBottomGenerated.png";
     private const string GameplayBackgroundPath = "Assets/Resources/UI/WesternGameplayBackgroundGenerated.png";
 
     [MenuItem("NHN/Prototype/Create InGame Prototype Scene")]
@@ -52,6 +53,7 @@ public static class InGamePrototypeSceneBuilder
             out int paperAttachedFrameIndex);
         Sprite gameplayBackgroundSprite = LoadFirstSprite(GameplayBackgroundPath);
         Sprite bulletHoleSprite = LoadFirstSprite(BulletHolePath);
+        Sprite[] bulletImpactFrames = LoadSequentialSprites(BulletImpactFramePathPrefix, 16);
         Sprite crosshairSprite = LoadFirstSprite(CrosshairPath);
         Sprite[] cowboySprites = LoadSprites(CowboyPath);
         Sprite cylinderSprite = LoadFirstSprite(CylinderPath);
@@ -73,7 +75,7 @@ public static class InGamePrototypeSceneBuilder
         PaperBoardWarp boardWarp = boardObject.GetComponent<PaperBoardWarp>();
         PaperBoardGridRenderer gridRenderer = boardObject.GetComponent<PaperBoardGridRenderer>();
         ScarecrowPaperCarrier scarecrowCarrier = CreateScarecrowCarrier(camera, boardObject.transform, windMotion, boardWarp, gridRenderer, scarecrowSprite, scarecrowDownSprite, scarecrowIdleFrames, scarecrowAttackedFrames, scarecrowDeathFrames, paperIdleFrameCount, paperFlyingFrameStartIndex, paperFlyingFrameCount, paperUnfoldFrameStartIndex, paperUnfoldFrameCount, paperAttachedFrameIndex);
-        RoundResultBoardOverlay resultOverlay = CreateResultOverlay(paperSprites.FirstOrDefault(), bulletHoleSprite);
+        RoundResultBoardOverlay resultOverlay = CreateResultOverlay(paperSprites.FirstOrDefault(), bulletHoleSprite, bulletImpactFrames);
 
         Transform markRoot = new GameObject("Shot Marks").transform;
         markRoot.SetParent(boardObject.transform, false);
@@ -99,6 +101,14 @@ public static class InGamePrototypeSceneBuilder
         controller.outlawBanditSprite = outlawBanditSprite;
         controller.tripleShotPowerupSprite = tripleShotSprite;
         controller.camelCarrierSprite = camelCarrierSprite;
+        controller.preferAssignedScarecrowSprites = true;
+        controller.bulletImpactFrames = bulletImpactFrames;
+        controller.preferAssignedBulletImpactSprites = true;
+        controller.impactAnimationScaleMultiplier = 0.225f;
+        controller.resultGomokuMarkerWorldSizeMultiplier = 1.2f;
+        controller.resultTicTacToeMarkerWorldSizeMultiplier = 1.3f;
+        controller.resultImpactAnimationScaleMultiplier = 0.45f;
+        controller.resultFinalBulletHoleScaleMultiplier = 2f;
 
         PrototypeHud hud = controllerObject.AddComponent<PrototypeHud>();
         hud.controller = controller;
@@ -246,7 +256,8 @@ public static class InGamePrototypeSceneBuilder
         carrier.boardWarp = boardWarp;
         carrier.boardGridRenderer = gridRenderer;
         carrier.targetCamera = camera;
-        carrier.autoLayoutScarecrows = true;
+        carrier.autoLayoutScarecrows = false;
+        carrier.useScarecrowAnchors = true;
         carrier.maxHealth = 8;
         carrier.fallDuration = 1.9f;
         carrier.attachApproachDuration = 0.5f;
@@ -264,6 +275,7 @@ public static class InGamePrototypeSceneBuilder
             new Vector3(1.1f, 0.25f, 0f),
             new Vector3(3f, -0.12f, 0f)
         };
+        carrier.scarecrowAnchors = CreateScarecrowAnchors(carrierObject.transform, carrier.scarecrowLocalPositions);
         carrier.paperSocketLocalPosition = new Vector3(0f, 0.78f, -0.05f);
         carrier.paperAttachedScale = boardTransform.localScale;
         carrier.scarecrowSprite = scarecrowSprite;
@@ -274,6 +286,8 @@ public static class InGamePrototypeSceneBuilder
         carrier.scarecrowIdleFrameRate = 5f;
         carrier.scarecrowAttackedFrameRate = 14f;
         carrier.scarecrowDeathFrameRate = 12f;
+        carrier.useScarecrowSpritePivot = true;
+        carrier.lockScarecrowAnimationFrameScale = true;
         carrier.idlePaperFrameIndex = 0;
         carrier.idlePaperFrameCount = paperIdleFrameCount;
         carrier.flyingPaperFrameIndex = paperFlyingFrameStartIndex;
@@ -286,7 +300,23 @@ public static class InGamePrototypeSceneBuilder
         return carrier;
     }
 
-    private static RoundResultBoardOverlay CreateResultOverlay(Sprite boardSprite, Sprite bulletHoleSprite)
+    private static Transform[] CreateScarecrowAnchors(Transform root, Vector3[] localPositions)
+    {
+        int count = localPositions == null || localPositions.Length == 0 ? 4 : localPositions.Length;
+        Transform[] anchors = new Transform[count];
+        for (int index = 0; index < count; index++)
+        {
+            GameObject anchorObject = new GameObject($"Scarecrow Anchor {index + 1}");
+            Transform anchor = anchorObject.transform;
+            anchor.SetParent(root, false);
+            anchor.localPosition = localPositions != null && index < localPositions.Length ? localPositions[index] : Vector3.zero;
+            anchors[index] = anchor;
+        }
+
+        return anchors;
+    }
+
+    private static RoundResultBoardOverlay CreateResultOverlay(Sprite boardSprite, Sprite bulletHoleSprite, Sprite[] bulletImpactFrames)
     {
         GameObject overlayObject = new GameObject("Round Result Board UI");
         overlayObject.transform.position = new Vector3(0f, 0.15f, -0.2f);
@@ -308,12 +338,16 @@ public static class InGamePrototypeSceneBuilder
         overlay.boardRenderer = boardRenderer;
         overlay.markerRoot = markerRoot;
         overlay.bulletHoleSprite = bulletHoleSprite;
+        overlay.bulletImpactFrames = bulletImpactFrames;
         overlay.boardWorldSize = new Vector2(6.6f, 6.6f);
         overlay.boardImageScaleMultiplier = 1.18f;
         overlay.gridInsetNormalized = 0.1f;
         overlay.gridNormalizedRect = new Rect(0.1f, 0.1f, 0.8f, 0.8f);
         overlay.gomokuMarkerWorldSize = 0.34f;
         overlay.ticTacToeMarkerWorldSize = 1.25f;
+        overlay.useBulletImpactSpritePivot = true;
+        overlay.impactAnimationScaleMultiplier = 0.45f;
+        overlay.finalBulletHoleScaleMultiplier = 1f;
 
         PaperBoardGridRenderer gridRenderer = overlayObject.AddComponent<PaperBoardGridRenderer>();
         gridRenderer.syncFromTarget = false;

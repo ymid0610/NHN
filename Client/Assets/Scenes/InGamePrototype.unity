@@ -147,7 +147,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 58dd39e223ce4386a0fc9ffb99f832fc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PrototypeSpriteAnimator
   spriteRenderer: {fileID: 58381278}
   frames:
@@ -303,7 +303,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a448ecce634342c1860f621e7b9da13a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PrototypeCursor
   targetCamera: {fileID: 342788520}
   worldZ: -1
@@ -409,13 +409,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4683ea6b27dd4f8b8535632e2f6ff766, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.RoundResultBoardOverlay
   boardRenderer: {fileID: 1890715692}
   gridRenderer: {fileID: 109262435}
   markerRoot: {fileID: 1218816643}
   bulletHoleSprite: {fileID: -6160563024700385400, guid: e76a9078a6b82884eb6321c991e669e4, type: 3}
+  bulletImpactFrames:
+  - {fileID: 5303485845121918180, guid: ca413d5ac5da63a4888bacfca3742753, type: 3}
+  - {fileID: 6664018268957736110, guid: 081b1312837c00e40b3023983d08ba12, type: 3}
+  - {fileID: 8131416481893580270, guid: 489b294f3e015d145835b296418c1e62, type: 3}
+  - {fileID: -8245642315061414550, guid: 6b59cf6eb3e64b74097f4e41f1378275, type: 3}
+  - {fileID: -7054689149733531544, guid: d269d9cb18a0ee341999ec3831b2ad20, type: 3}
+  - {fileID: 8757438664305833177, guid: 434ccd20fa29bee43b1fc59e0064370f, type: 3}
+  - {fileID: 5837352794785841208, guid: e6cd90db24f7d27468ff9dc927dfa1cc, type: 3}
+  - {fileID: 3057892637571011241, guid: 9ec89cefe4a2fc94890a1faab39319ca, type: 3}
+  bulletImpactMarkerTemplate: {fileID: 0}
   boardWorldSize: {x: 7.8, y: 7.8}
+  boardImageScaleMultiplier: 1.18
   gridInsetNormalized: 0.1
   gridNormalizedRect:
     serializedVersion: 2
@@ -426,6 +437,12 @@ MonoBehaviour:
   gomokuMarkerWorldSize: 0.34
   ticTacToeMarkerWorldSize: 1.25
   markerSortingBase: 230
+  useBulletImpactSpritePivot: 1
+  shotRevealInterval: 0.16
+  impactFrameRate: 18
+  impactAnimationScaleMultiplier: 0.45
+  finalBulletHoleScaleMultiplier: 1
+  victoryLineWidth: 0.08
   playerColors:
   - {r: 0.3, g: 1, b: 0.35, a: 1}
   - {r: 1, g: 0.25, b: 0.2, a: 1}
@@ -458,7 +475,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8fa2776d25ca44099ccc2d16bf6ae851, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PaperBoardGridRenderer
   boardTarget: {fileID: 0}
   syncFromTarget: 0
@@ -571,7 +588,7 @@ Sprite:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name:
+  m_Name: 
   m_Rect:
     serializedVersion: 2
     x: 0
@@ -584,7 +601,7 @@ Sprite:
   m_Pivot: {x: 0.5, y: 0.5}
   m_Extrude: 0
   m_IsPolygon: 0
-  m_PackingTag:
+  m_PackingTag: 
   m_RenderDataKey:
     00000000000000000000000000000000: 0
   m_AtlasTags: []
@@ -774,7 +791,7 @@ Sprite:
   m_PhysicsShape: []
   m_Bones: []
   m_ScriptableObjects: []
-  m_SpriteID:
+  m_SpriteID: 
 --- !u!1 &245538199
 GameObject:
   m_ObjectHideFlags: 0
@@ -1168,10 +1185,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c3f5d0b23e423b81549c2e53ff66c2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PrototypeHud
   controller: {fileID: 528127193}
   playerHudPanelTexture: {fileID: 2800000, guid: 1993427d95d4ed14285a1bc9c79919a7, type: 3}
+  maxPanelWidth: 1180
+  horizontalPadding: 28
+  bottomOffset: 12
+  heightFromWidth: 0.16
+  panelHeightClamp: {x: 120, y: 168}
+  slotSidePaddingNormalized: 0.045
+  slotGapNormalized: 0.012
+  slotTopNormalized: 0.16
+  slotHeightNormalized: 0.72
+  slotTextPadding: {x: 18, y: 8}
 --- !u!114 &528127193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1182,7 +1209,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f6b22f337da54aebab97cb7dd87d810a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.LocalInGameController
   targetCamera: {fileID: 342788520}
   boardTarget: {fileID: 1996999317}
@@ -1199,21 +1226,56 @@ MonoBehaviour:
   outlawBanditSprite: {fileID: -6761384634461887730, guid: 18ecc9ce9d0931746adfcfca1581d412, type: 3}
   tripleShotPowerupSprite: {fileID: -6075280667809441538, guid: f3ed51b550ab3874a85f52c77d09660f, type: 3}
   camelCarrierSprite: {fileID: 4492909258573648029, guid: 117688bf37f1b424186d9eb4c8809332, type: 3}
+  preferAssignedScarecrowSprites: 1
   gameMode: 0
   maxPlayers: 4
   blockOccupiedCells: 1
   allowOverline: 1
   itemEnabled: 0
   requireScarecrowAttached: 1
+  applyInGameBoardWorldSize: 1
+  syncResultGridFromBoardTarget: 1
+  useResultGridOverride: 0
   inGameBoardWorldSize: {x: 3.6, y: 3.6}
-  resultBoardWorldSize: {x: 7.8, y: 7.8}
+  resultGridNormalizedRectOverride:
+    serializedVersion: 2
+    x: 0.1
+    y: 0.1
+    width: 0.8
+    height: 0.8
+  resultBoardImageScaleMultiplier: 1.18
+  resultGomokuMarkerWorldSizeMultiplier: 1.2
+  resultTicTacToeMarkerWorldSizeMultiplier: 1.3
+  resultImpactAnimationScaleMultiplier: 0.45
+  resultFinalBulletHoleScaleMultiplier: 2
+  bulletImpactMarkerTemplate: {fileID: 0}
+  resultBulletImpactMarkerTemplate: {fileID: 0}
+  bulletImpactFrames:
+  - {fileID: 5303485845121918180, guid: ca413d5ac5da63a4888bacfca3742753, type: 3}
+  - {fileID: 6664018268957736110, guid: 081b1312837c00e40b3023983d08ba12, type: 3}
+  - {fileID: 8131416481893580270, guid: 489b294f3e015d145835b296418c1e62, type: 3}
+  - {fileID: -8245642315061414550, guid: 6b59cf6eb3e64b74097f4e41f1378275, type: 3}
+  - {fileID: -7054689149733531544, guid: d269d9cb18a0ee341999ec3831b2ad20, type: 3}
+  - {fileID: 8757438664305833177, guid: 434ccd20fa29bee43b1fc59e0064370f, type: 3}
+  - {fileID: 5837352794785841208, guid: e6cd90db24f7d27468ff9dc927dfa1cc, type: 3}
+  - {fileID: 3057892637571011241, guid: 9ec89cefe4a2fc94890a1faab39319ca, type: 3}
+  preferAssignedBulletImpactSprites: 1
   gomokuMarkerWorldSize: 0.17
   ticTacToeMarkerWorldSize: 0.72
+  useBulletImpactSpritePivot: 1
+  impactFrameRate: 18
+  impactAnimationScaleMultiplier: 0.225
+  finalBulletHoleScaleMultiplier: 1
   playerColors:
   - {r: 0.3, g: 1, b: 0.35, a: 1}
   - {r: 1, g: 0.25, b: 0.2, a: 1}
   - {r: 0.25, g: 0.55, b: 1, a: 1}
   - {r: 1, g: 0.9, b: 0.25, a: 1}
+  fryingPanSpawnMinDelay: 3.5
+  fryingPanSpawnMaxDelay: 7.5
+  fryingPanFlightDuration: 1.35
+  fryingPanHitRadius: 0.55
+  fryingPanWorldSize: 0.9
 --- !u!4 &528127194
 Transform:
   m_ObjectHideFlags: 0
@@ -1438,7 +1500,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5e32b353df374929a388f0cbab3f84ff, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.ScarecrowPaperCarrier
   boardTransform: {fileID: 1996999313}
   boardWindMotion: {fileID: 1996999316}
@@ -1447,6 +1509,8 @@ MonoBehaviour:
   targetCamera: {fileID: 342788520}
   autoLayoutScarecrows: 1
   autoLayoutViewportPadding: {x: 0.1, y: 0.16}
+  useScarecrowAnchors: 1
+  scarecrowAnchors: []
   maxHealth: 8
   fallDuration: 1.9
   attachApproachDuration: 0.5
@@ -1490,6 +1554,9 @@ MonoBehaviour:
   scarecrowIdleFrameRate: 5
   scarecrowAttackedFrameRate: 14
   scarecrowDeathFrameRate: 12
+  useScarecrowSpritePivot: 1
+  lockScarecrowAnimationFrameScale: 1
+  scarecrowSpriteLocalOffset: {x: 0, y: 0, z: 0}
   idlePaperFrameIndex: 0
   idlePaperFrameCount: 4
   flyingPaperFrameIndex: 4
@@ -1940,7 +2007,7 @@ Transform:
   m_GameObject: {fileID: 971567878}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0, y: -0, z: 0}
   m_LocalScale: {x: 0.46875, y: 0.46875, z: 0.46875}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1956,7 +2023,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c8c3b90a8a6f4066bdb0de95eff23a92, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.SpriteBoundsCenterer
   spriteRenderer: {fileID: 971567881}
 --- !u!212 &971567881
@@ -2045,7 +2112,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 073797afb82c5a1438f328866b10b3f0, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.Light2D
   m_ComponentVersion: 2
   m_LightType: 4
@@ -3656,7 +3723,7 @@ Texture2D:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name:
+  m_Name: 
   m_ImageContentsHash:
     serializedVersion: 2
     Hash: 00000000000000000000000000000000
@@ -3671,7 +3738,7 @@ Texture2D:
   m_IsReadable: 1
   m_IsPreProcessed: 0
   m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName:
+  m_MipmapLimitGroupName: 
   m_StreamingMipmaps: 0
   m_StreamingMipmapsPriority: 0
   m_VTOnly: 0
@@ -3688,14 +3755,14 @@ Texture2D:
     m_WrapW: 0
   m_LightmapFormat: 0
   m_ColorSpace: 1
-  m_PlatformBlob:
+  m_PlatformBlob: 
   image data: 4
   _typelessdata: ffffffff
   m_StreamData:
     serializedVersion: 2
     offset: 0
     size: 0
-    path:
+    path: 
 --- !u!1 &1890715689
 GameObject:
   m_ObjectHideFlags: 0
@@ -3739,7 +3806,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c8c3b90a8a6f4066bdb0de95eff23a92, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.SpriteBoundsCenterer
   spriteRenderer: {fileID: 1890715692}
 --- !u!212 &1890715692
@@ -3849,7 +3916,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8fa2776d25ca44099ccc2d16bf6ae851, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PaperBoardGridRenderer
   boardTarget: {fileID: 1996999317}
   syncFromTarget: 1
@@ -3875,7 +3942,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 18357ae10df2417b952227ffaa7b5008, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PaperBoardWarp
   boardTarget: {fileID: 1996999317}
   windMotion: {fileID: 1996999316}
@@ -3897,7 +3964,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f0e8b13fc5d4f329f9b17861437e258, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PaperWindMotion
   spriteRenderer: {fileID: 971567881}
   frames:
@@ -3940,7 +4007,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a83b67f2c6da4d158b25bf39acd75c28, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NHN.InGame.PaperBoardTarget
   boardSize: 15
   boardWorldSize: {x: 3.6, y: 3.6}

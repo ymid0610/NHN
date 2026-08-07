@@ -14,6 +14,7 @@ namespace NHN.InGame
             public Sprite[] AnimationFrames;
             public float AnimationFrameRate;
             public float AnimationTime;
+            public float ReferenceSpriteSourceSize = 1f;
             public bool LoopAnimation;
             public bool ReturnToIdleWhenDone;
         }
@@ -41,6 +42,8 @@ namespace NHN.InGame
         public Camera targetCamera;
         public bool autoLayoutScarecrows = true;
         public Vector2 autoLayoutViewportPadding = new Vector2(0.1f, 0.16f);
+        public bool useScarecrowAnchors = true;
+        public Transform[] scarecrowAnchors;
         public int maxHealth = 8;
         public float fallDuration = 1.85f;
         public float attachApproachDuration = 0.48f;
@@ -68,6 +71,9 @@ namespace NHN.InGame
         [Min(1f)] public float scarecrowIdleFrameRate = 5f;
         [Min(1f)] public float scarecrowAttackedFrameRate = 14f;
         [Min(1f)] public float scarecrowDeathFrameRate = 12f;
+        public bool useScarecrowSpritePivot = true;
+        public bool lockScarecrowAnimationFrameScale = true;
+        public Vector3 scarecrowSpriteLocalOffset = Vector3.zero;
         public int idlePaperFrameIndex;
         [Min(1)] public int idlePaperFrameCount = 1;
         public int flyingPaperFrameIndex = 1;
@@ -103,6 +109,7 @@ namespace NHN.InGame
 
         private void Awake()
         {
+            EnsureScarecrowAnchors();
             if (buildPlaceholderVisual)
             {
                 EnsureScarecrowVisuals();
@@ -118,12 +125,14 @@ namespace NHN.InGame
         {
             RefreshResponsiveLayoutIfNeeded();
             AnimateScarecrowVisuals();
+            SyncScarecrowVisualsToAnchors();
             MoveScarecrow();
             UpdateState();
         }
 
         public void ResetCarrier()
         {
+            EnsureScarecrowAnchors();
             RefreshResponsiveLayout(true);
             EnsureScarecrowVisuals();
             health = maxHealth;
@@ -441,6 +450,7 @@ namespace NHN.InGame
 
         private void EnsureScarecrowVisuals()
         {
+            EnsureScarecrowAnchors();
             int desiredCount = GetScarecrowCount();
             if (scarecrowVisuals.Count == desiredCount && !ShouldRebuildScarecrowVisuals())
             {
@@ -477,6 +487,16 @@ namespace NHN.InGame
             }
         }
 
+        private void SyncScarecrowVisualsToAnchors()
+        {
+            if (!useScarecrowAnchors || moveScarecrow || scarecrowAnchors == null)
+            {
+                return;
+            }
+
+            ApplyScarecrowVisualPositions();
+        }
+
         private ScarecrowVisual CreateScarecrowVisual(int index, Vector3 localPosition)
         {
             ScarecrowVisual visual = new ScarecrowVisual();
@@ -497,6 +517,7 @@ namespace NHN.InGame
 
                 visual.SpriteRenderer = spriteObject.AddComponent<SpriteRenderer>();
                 visual.SpriteRenderer.sortingOrder = 8;
+                visual.ReferenceSpriteSourceSize = GetSpriteSourceSize(defaultSprite);
 
                 ApplyGeneratedSprite(visual, defaultSprite);
                 PlayScarecrowIdle(visual, true);
@@ -538,6 +559,11 @@ namespace NHN.InGame
 
         private int GetScarecrowCount()
         {
+            if (useScarecrowAnchors && scarecrowAnchors != null && scarecrowAnchors.Length > 0)
+            {
+                return scarecrowAnchors.Length;
+            }
+
             return scarecrowLocalPositions == null || scarecrowLocalPositions.Length == 0 ? 1 : scarecrowLocalPositions.Length;
         }
 
@@ -609,7 +635,12 @@ namespace NHN.InGame
                 float yPattern = index == 0 || index == count - 1 ? -1f : 0.55f;
                 float y = yBase + yPattern * yStep;
                 Vector3 worldPosition = new Vector3(x, y, transform.position.z);
-                scarecrowLocalPositions[index] = transform.InverseTransformPoint(worldPosition);
+                Vector3 localPosition = transform.InverseTransformPoint(worldPosition);
+                scarecrowLocalPositions[index] = localPosition;
+                if (useScarecrowAnchors && scarecrowAnchors != null && index < scarecrowAnchors.Length && scarecrowAnchors[index] != null)
+                {
+                    scarecrowAnchors[index].localPosition = localPosition;
+                }
             }
 
             Vector3 localLeft = transform.InverseTransformPoint(new Vector3(centerX - xReach, yBase, transform.position.z));
@@ -658,12 +689,69 @@ namespace NHN.InGame
 
         private Vector3 GetScarecrowLocalPosition(int index)
         {
+            if (useScarecrowAnchors && scarecrowAnchors != null && index >= 0 && index < scarecrowAnchors.Length && scarecrowAnchors[index] != null)
+            {
+                return scarecrowAnchors[index].localPosition;
+            }
+
             if (scarecrowLocalPositions == null || scarecrowLocalPositions.Length == 0)
             {
                 return Vector3.zero;
             }
 
             return scarecrowLocalPositions[Mathf.Clamp(index, 0, scarecrowLocalPositions.Length - 1)];
+        }
+
+        [ContextMenu("Create/Refresh Scarecrow Anchors")]
+        public void EnsureScarecrowAnchors()
+        {
+            if (!useScarecrowAnchors)
+            {
+                return;
+            }
+
+            int count = scarecrowAnchors != null && scarecrowAnchors.Length > 0
+                ? scarecrowAnchors.Length
+                : scarecrowLocalPositions != null && scarecrowLocalPositions.Length > 0
+                    ? scarecrowLocalPositions.Length
+                    : 4;
+
+            if (scarecrowAnchors == null || scarecrowAnchors.Length != count)
+            {
+                Transform[] resizedAnchors = new Transform[count];
+                if (scarecrowAnchors != null)
+                {
+                    for (int i = 0; i < Mathf.Min(scarecrowAnchors.Length, resizedAnchors.Length); i++)
+                    {
+                        resizedAnchors[i] = scarecrowAnchors[i];
+                    }
+                }
+
+                scarecrowAnchors = resizedAnchors;
+            }
+
+            for (int index = 0; index < count; index++)
+            {
+                bool createdAnchor = false;
+                if (scarecrowAnchors[index] == null)
+                {
+                    Transform existing = transform.Find($"Scarecrow Anchor {index + 1}");
+                    if (existing == null)
+                    {
+                        GameObject anchorObject = new GameObject($"Scarecrow Anchor {index + 1}");
+                        existing = anchorObject.transform;
+                        existing.SetParent(transform, false);
+                        createdAnchor = true;
+                    }
+
+                    scarecrowAnchors[index] = existing;
+                }
+
+                if (createdAnchor && scarecrowLocalPositions != null && index < scarecrowLocalPositions.Length)
+                {
+                    scarecrowAnchors[index].localPosition = scarecrowLocalPositions[index];
+                }
+            }
         }
 
         private bool ShouldRebuildScarecrowVisuals()
@@ -777,11 +865,36 @@ namespace NHN.InGame
 
             visual.SpriteRenderer.sprite = sprite;
             visual.SpriteTransform.localRotation = Quaternion.identity;
-            visual.SpriteTransform.localPosition = Vector3.zero;
+
+            float sourceSize = lockScarecrowAnimationFrameScale
+                ? Mathf.Max(visual.ReferenceSpriteSourceSize, 0.01f)
+                : GetSpriteSourceSize(sprite);
+            float scale = spriteWorldHeight / sourceSize;
+            visual.SpriteTransform.localScale = Vector3.one * scale;
+
+            if (useScarecrowSpritePivot)
+            {
+                visual.SpriteTransform.localPosition = scarecrowSpriteLocalOffset;
+            }
+            else
+            {
+                Vector3 center = sprite.bounds.center;
+                visual.SpriteTransform.localPosition = new Vector3(
+                    scarecrowSpriteLocalOffset.x - center.x * scale,
+                    scarecrowSpriteLocalOffset.y - center.y * scale,
+                    scarecrowSpriteLocalOffset.z);
+            }
+        }
+
+        private static float GetSpriteSourceSize(Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return 1f;
+            }
 
             Vector2 size = sprite.bounds.size;
-            float sourceSize = Mathf.Max(size.x, size.y, 0.01f);
-            visual.SpriteTransform.localScale = Vector3.one * (spriteWorldHeight / sourceSize);
+            return Mathf.Max(size.x, size.y, 0.01f);
         }
 
         private void CreatePart(Transform parent, string partName, Vector3 localPosition, Vector3 localScale, Color color, int sortingOrder)

@@ -51,6 +51,7 @@ namespace NHN.Menu
 
         [Header("Scene")]
         public string inGameSceneName = "InGamePrototype";
+        public string tutorialSceneName = "Tutorial";
 
         [Header("Sprites")]
         public Sprite paperSprite;
@@ -463,6 +464,7 @@ namespace NHN.Menu
             CreateButton(nav, "Find Room Nav", "방 찾기", 0f, 58f, panelDeepColor, parchmentColor, delegate { ShowView(MenuView.FindRoom); });
             CreateButton(nav, "Matchmaking Nav", "매치메이킹", 0f, 58f, panelDeepColor, parchmentColor, delegate { ShowView(MenuView.Matchmaking); });
             CreateButton(nav, "Settings Nav", "설정", 0f, 58f, panelDeepColor, parchmentColor, delegate { ShowView(MenuView.Settings); });
+            CreateButton(nav, "Tutorial Nav", "튜토리얼", 0f, 58f, panelDeepColor, parchmentColor, StartTutorialScene);
             CreateButton(nav, "Server Ready Button", "준비 완료", 0f, 54f, greenAccentColor, inkColor, SendReadyToServer);
             CreateButton(nav, "Server Start Button", "서버 게임 시작", 0f, 54f, brassColor, inkColor, StartServerRoom);
             CreateButton(nav, "Server Leave Button", "방 나가기", 0f, 54f, panelDeepColor, parchmentColor, LeaveServerRoom);
@@ -893,6 +895,12 @@ namespace NHN.Menu
             SceneManager.LoadScene(inGameSceneName);
         }
 
+        private void StartTutorialScene()
+        {
+            SavePreferences();
+            SceneManager.LoadScene(tutorialSceneName);
+        }
+
         private void ResetSettingsToDefault()
         {
             masterVolume = 0.9f;
@@ -1213,26 +1221,30 @@ namespace NHN.Menu
 
             if (matchClient == null || !matchClient.IsAuthenticated)
             {
-                serverRoomText.text = "서버 연결 전. Match 서버 기본 주소: " + matchServerHost + ":" + matchServerPort;
+                serverRoomText.text = "서버 연결 전\n" +
+                    "주소: " + matchServerHost + ":" + matchServerPort + "\n" +
+                    "방 만들기, 방 찾기, 매치메이킹 버튼을 누르면 자동 연결을 시도합니다.";
                 return;
             }
 
             ServerRoomDetail room = matchClient.CurrentRoom;
             if (!room.IsValid)
             {
-                serverRoomText.text = "서버 연결됨. 아직 들어간 방 없음.";
+                serverRoomText.text = "서버 연결됨\n" +
+                    "현재 방 없음\n" +
+                    "방 코드 생성, 코드 검색, 빠른 매칭 중 하나를 선택하세요.";
                 return;
             }
 
             int memberCount = room.Members != null ? room.Members.Count : 0;
             StringBuilder builder = new StringBuilder();
-            builder.AppendFormat("서버 방 #{0}  {1}  {2}/{3}\n", room.RoomId, room.Name, memberCount, room.Capacity);
+            builder.AppendFormat("서버 방 #{0}  코드 {1}  {2}/{3}\n", room.RoomId, room.Name, memberCount, room.Capacity);
             if (room.Members != null)
             {
                 for (int i = 0; i < room.Members.Count; i++)
                 {
                     ServerRoomMember member = room.Members[i];
-                    builder.AppendFormat("{0}P {1}{2}{3}",
+                    builder.AppendFormat("{0}P  {1}  {2}{3}",
                         member.Slot + 1,
                         member.Nickname,
                         member.IsHost ? " [HOST]" : string.Empty,

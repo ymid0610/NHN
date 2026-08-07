@@ -1,0 +1,1261 @@
+fileFormatVersion: 2
+guid: eff3f046229ce6d4e90fdb95360d9adc
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -3341849011253842001
+    second: BulletImpactSourceSheet_0
+  - first:
+      213: 2225763281730129965
+    second: BulletImpactSourceSheet_1
+  - first:
+      213: -6169244683092136870
+    second: BulletImpactSourceSheet_2
+  - first:
+      213: 4704978206793542812
+    second: BulletImpactSourceSheet_3
+  - first:
+      213: -2437688596114685694
+    second: BulletImpactSourceSheet_4
+  - first:
+      213: -2483227397576916621
+    second: BulletImpactSourceSheet_5
+  - first:
+      213: -6421886843842586440
+    second: BulletImpactSourceSheet_6
+  - first:
+      213: -6992525631316502528
+    second: BulletImpactSourceSheet_7
+  - first:
+      213: -4476067525916109661
+    second: BulletImpactSourceSheet_8
+  - first:
+      213: -1098076140395461694
+    second: BulletImpactSourceSheet_9
+  - first:
+      213: -4787351865944886608
+    second: BulletImpactSourceSheet_10
+  - first:
+      213: -4647419839350959449
+    second: BulletImpactSourceSheet_11
+  - first:
+      213: -8914662333931533835
+    second: BulletImpactSourceSheet_12
+  - first:
+      213: 7196283141788672397
+    second: BulletImpactSourceSheet_13
+  - first:
+      213: 2389509721591551523
+    second: BulletImpactSourceSheet_14
+  - first:
+      213: -5009337070338520826
+    second: BulletImpactSourceSheet_15
+  - first:
+      213: 2297638067154943197
+    second: BulletImpactSourceSheet_16
+  - first:
+      213: -8926566237484633414
+    second: BulletImpactSourceSheet_17
+  - first:
+      213: -4663753040640183335
+    second: BulletImpactSourceSheet_18
+  - first:
+      213: -63623839607799403
+    second: BulletImpactSourceSheet_19
+  - first:
+      213: -4464063339171343750
+    second: BulletImpactSourceSheet_20
+  - first:
+      213: 4413631006180217355
+    second: BulletImpactSourceSheet_21
+  - first:
+      213: -7610767390974553423
+    second: BulletImpactSourceSheet_22
+  - first:
+      213: 2086025390156077986
+    second: BulletImpactSourceSheet_23
+  - first:
+      213: 7816340252497054866
+    second: BulletImpactSourceSheet_24
+  - first:
+      213: 2310758642074387537
+    second: BulletImpactSourceSheet_25
+  - first:
+      213: -4201322103106165257
+    second: BulletImpactSourceSheet_26
+  - first:
+      213: -1929093036665341617
+    second: BulletImpactSourceSheet_27
+  - first:
+      213: -8586305952633158824
+    second: BulletImpactSourceSheet_28
+  - first:
+      213: 6425373759221216600
+    second: BulletImpactSourceSheet_29
+  - first:
+      213: -8814281987859690277
+    second: BulletImpactSourceSheet_30
+  - first:
+      213: 993460289911849373
+    second: BulletImpactSourceSheet_31
+  - first:
+      213: 7001757808193323077
+    second: BulletImpactSourceSheet_32
+  - first:
+      213: -855219251595590914
+    second: BulletImpactSourceSheet_33
+  - first:
+      213: -3572790525923324033
+    second: BulletImpactSourceSheet_34
+  - first:
+      213: 5277167948603717536
+    second: BulletImpactSourceSheet_35
+  - first:
+      213: 310865082883706776
+    second: BulletImpactSourceSheet_36
+  - first:
+      213: -3187058985052386723
+    second: BulletImpactSourceSheet_37
+  - first:
+      213: -6073625771989703574
+    second: BulletImpactSourceSheet_38
+  - first:
+      213: 4537528777494464456
+    second: BulletImpactSourceSheet_39
+  - first:
+      213: -5265994803838583888
+    second: BulletImpactSourceSheet_40
+  - first:
+      213: -6736451650944281888
+    second: BulletImpactSourceSheet_41
+  - first:
+      213: -6031689597808877691
+    second: BulletImpactSourceSheet_42
+  - first:
+      213: 1069970561365550093
+    second: BulletImpactSourceSheet_43
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_0
+      rect:
+        serializedVersion: 2
+        x: 920
+        y: 462
+        width: 18
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: faf6937b70e5f91d0800000000000000
+      internalID: -3341849011253842001
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_1
+      rect:
+        serializedVersion: 2
+        x: 1205
+        y: 466
+        width: 14
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d20d1a189ef73ee10800000000000000
+      internalID: 2225763281730129965
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_2
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 459
+        width: 15
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5c63d395a0726aa0800000000000000
+      internalID: -6169244683092136870
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_3
+      rect:
+        serializedVersion: 2
+        x: 1306
+        y: 457
+        width: 21
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9c22e340c07b4140800000000000000
+      internalID: 4704978206793542812
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_4
+      rect:
+        serializedVersion: 2
+        x: 638
+        y: 435
+        width: 18
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 201409323279b2ed0800000000000000
+      internalID: -2437688596114685694
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_5
+      rect:
+        serializedVersion: 2
+        x: 843
+        y: 233
+        width: 191
+        height: 219
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 37109eea6ddc98dd0800000000000000
+      internalID: -2483227397576916621
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_6
+      rect:
+        serializedVersion: 2
+        x: 869
+        y: 445
+        width: 15
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8b8120da0ffd0e6a0800000000000000
+      internalID: -6421886843842586440
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_7
+      rect:
+        serializedVersion: 2
+        x: 968
+        y: 440
+        width: 15
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 008d09e7cfe85fe90800000000000000
+      internalID: -6992525631316502528
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_8
+      rect:
+        serializedVersion: 2
+        x: 1121
+        y: 235
+        width: 238
+        height: 229
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a4db17ec40d1e1c0800000000000000
+      internalID: -4476067525916109661
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_9
+      rect:
+        serializedVersion: 2
+        x: 1460
+        y: 435
+        width: 15
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c385637199d2c0f0800000000000000
+      internalID: -1098076140395461694
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_10
+      rect:
+        serializedVersion: 2
+        x: 1564
+        y: 425
+        width: 13
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0b23d87a7d8ef8db0800000000000000
+      internalID: -4787351865944886608
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_11
+      rect:
+        serializedVersion: 2
+        x: 1691
+        y: 249
+        width: 175
+        height: 199
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a21269774c018fb0800000000000000
+      internalID: -4647419839350959449
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_12
+      rect:
+        serializedVersion: 2
+        x: 315
+        y: 287
+        width: 152
+        height: 149
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f9c475d6d1c84480800000000000000
+      internalID: -8914662333931533835
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_13
+      rect:
+        serializedVersion: 2
+        x: 358
+        y: 415
+        width: 11
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d812271d3655ed360800000000000000
+      internalID: 7196283141788672397
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_14
+      rect:
+        serializedVersion: 2
+        x: 589
+        y: 292
+        width: 124
+        height: 132
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3269ece7e6e392120800000000000000
+      internalID: 2389509721591551523
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_15
+      rect:
+        serializedVersion: 2
+        x: 818
+        y: 406
+        width: 26
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 609c642a9724b7ab0800000000000000
+      internalID: -5009337070338520826
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_16
+      rect:
+        serializedVersion: 2
+        x: 1111
+        y: 404
+        width: 22
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ddc7f2f06a9d2ef10800000000000000
+      internalID: 2297638067154943197
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_17
+      rect:
+        serializedVersion: 2
+        x: 1417
+        y: 240
+        width: 189
+        height: 194
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ab2bbbe4d477e1480800000000000000
+      internalID: -8926566237484633414
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_18
+      rect:
+        serializedVersion: 2
+        x: 1975
+        y: 267
+        width: 153
+        height: 172
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d37e74b155074fb0800000000000000
+      internalID: -4663753040640183335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_19
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 393
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5914ee87476fd1ff0800000000000000
+      internalID: -63623839607799403
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_20
+      rect:
+        serializedVersion: 2
+        x: 556
+        y: 389
+        width: 28
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a7219dd6b067c02c0800000000000000
+      internalID: -4464063339171343750
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_21
+      rect:
+        serializedVersion: 2
+        x: 712
+        y: 374
+        width: 26
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b029505040e504d30800000000000000
+      internalID: 4413631006180217355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_22
+      rect:
+        serializedVersion: 2
+        x: 1024
+        y: 393
+        width: 25
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b2d5d8a16f116690800000000000000
+      internalID: -7610767390974553423
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_23
+      rect:
+        serializedVersion: 2
+        x: 1967
+        y: 384
+        width: 17
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2abd2b44a0d03fc10800000000000000
+      internalID: 2086025390156077986
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_24
+      rect:
+        serializedVersion: 2
+        x: 111
+        y: 370
+        width: 13
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 29c8ca10c08397c60800000000000000
+      internalID: 7816340252497054866
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_25
+      rect:
+        serializedVersion: 2
+        x: 116
+        y: 344
+        width: 34
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1540286fdb6711020800000000000000
+      internalID: 2310758642074387537
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_26
+      rect:
+        serializedVersion: 2
+        x: 143
+        y: 380
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7f52c598ec7e1b5c0800000000000000
+      internalID: -4201322103106165257
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_27
+      rect:
+        serializedVersion: 2
+        x: 1593
+        y: 361
+        width: 17
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f49f1ea9a1c7a35e0800000000000000
+      internalID: -1929093036665341617
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_28
+      rect:
+        serializedVersion: 2
+        x: 1856
+        y: 361
+        width: 18
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8538a707a3057d880800000000000000
+      internalID: -8586305952633158824
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_29
+      rect:
+        serializedVersion: 2
+        x: 152
+        y: 368
+        width: 12
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8553f7314638b2950800000000000000
+      internalID: 6425373759221216600
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_30
+      rect:
+        serializedVersion: 2
+        x: 587
+        y: 361
+        width: 9
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bdccf7b6b316da580800000000000000
+      internalID: -8814281987859690277
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_31
+      rect:
+        serializedVersion: 2
+        x: 835
+        y: 351
+        width: 9
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d9107aebeda79cd00800000000000000
+      internalID: 993460289911849373
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_32
+      rect:
+        serializedVersion: 2
+        x: 104
+        y: 351
+        width: 11
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5404ea031ad3b2160800000000000000
+      internalID: 7001757808193323077
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_33
+      rect:
+        serializedVersion: 2
+        x: 114
+        y: 342
+        width: 9
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef2c19f2f96a124f0800000000000000
+      internalID: -855219251595590914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_34
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 341
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7f857532f5ea6ec0800000000000000
+      internalID: -3572790525923324033
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_35
+      rect:
+        serializedVersion: 2
+        x: 142
+        y: 336
+        width: 6
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a7f9942a444c3940800000000000000
+      internalID: 5277167948603717536
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_36
+      rect:
+        serializedVersion: 2
+        x: 411
+        y: 281
+        width: 18
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 89f0b56552a605400800000000000000
+      internalID: 310865082883706776
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_37
+      rect:
+        serializedVersion: 2
+        x: 564
+        y: 316
+        width: 28
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5a4cb52dba45c3d0800000000000000
+      internalID: -3187058985052386723
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_38
+      rect:
+        serializedVersion: 2
+        x: 700
+        y: 299
+        width: 24
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a6465e13a8526bba0800000000000000
+      internalID: -6073625771989703574
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_39
+      rect:
+        serializedVersion: 2
+        x: 834
+        y: 310
+        width: 20
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c78bacd16a88fe30800000000000000
+      internalID: 4537528777494464456
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_40
+      rect:
+        serializedVersion: 2
+        x: 608
+        y: 286
+        width: 17
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0bbf52850ad6be6b0800000000000000
+      internalID: -5265994803838583888
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_41
+      rect:
+        serializedVersion: 2
+        x: 1695
+        y: 294
+        width: 15
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0e25fda2ae05382a0800000000000000
+      internalID: -6736451650944281888
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_42
+      rect:
+        serializedVersion: 2
+        x: 634
+        y: 258
+        width: 19
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 58fde2f94422b4ca0800000000000000
+      internalID: -6031689597808877691
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BulletImpactSourceSheet_43
+      rect:
+        serializedVersion: 2
+        x: 1220
+        y: 222
+        width: 18
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d04a15e7e8c49de00800000000000000
+      internalID: 1069970561365550093
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      BulletImpactSourceSheet_0: -3341849011253842001
+      BulletImpactSourceSheet_1: 2225763281730129965
+      BulletImpactSourceSheet_10: -4787351865944886608
+      BulletImpactSourceSheet_11: -4647419839350959449
+      BulletImpactSourceSheet_12: -8914662333931533835
+      BulletImpactSourceSheet_13: 7196283141788672397
+      BulletImpactSourceSheet_14: 2389509721591551523
+      BulletImpactSourceSheet_15: -5009337070338520826
+      BulletImpactSourceSheet_16: 2297638067154943197
+      BulletImpactSourceSheet_17: -8926566237484633414
+      BulletImpactSourceSheet_18: -4663753040640183335
+      BulletImpactSourceSheet_19: -63623839607799403
+      BulletImpactSourceSheet_2: -6169244683092136870
+      BulletImpactSourceSheet_20: -4464063339171343750
+      BulletImpactSourceSheet_21: 4413631006180217355
+      BulletImpactSourceSheet_22: -7610767390974553423
+      BulletImpactSourceSheet_23: 2086025390156077986
+      BulletImpactSourceSheet_24: 7816340252497054866
+      BulletImpactSourceSheet_25: 2310758642074387537
+      BulletImpactSourceSheet_26: -4201322103106165257
+      BulletImpactSourceSheet_27: -1929093036665341617
+      BulletImpactSourceSheet_28: -8586305952633158824
+      BulletImpactSourceSheet_29: 6425373759221216600
+      BulletImpactSourceSheet_3: 4704978206793542812
+      BulletImpactSourceSheet_30: -8814281987859690277
+      BulletImpactSourceSheet_31: 993460289911849373
+      BulletImpactSourceSheet_32: 7001757808193323077
+      BulletImpactSourceSheet_33: -855219251595590914
+      BulletImpactSourceSheet_34: -3572790525923324033
+      BulletImpactSourceSheet_35: 5277167948603717536
+      BulletImpactSourceSheet_36: 310865082883706776
+      BulletImpactSourceSheet_37: -3187058985052386723
+      BulletImpactSourceSheet_38: -6073625771989703574
+      BulletImpactSourceSheet_39: 4537528777494464456
+      BulletImpactSourceSheet_4: -2437688596114685694
+      BulletImpactSourceSheet_40: -5265994803838583888
+      BulletImpactSourceSheet_41: -6736451650944281888
+      BulletImpactSourceSheet_42: -6031689597808877691
+      BulletImpactSourceSheet_43: 1069970561365550093
+      BulletImpactSourceSheet_5: -2483227397576916621
+      BulletImpactSourceSheet_6: -6421886843842586440
+      BulletImpactSourceSheet_7: -6992525631316502528
+      BulletImpactSourceSheet_8: -4476067525916109661
+      BulletImpactSourceSheet_9: -1098076140395461694
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

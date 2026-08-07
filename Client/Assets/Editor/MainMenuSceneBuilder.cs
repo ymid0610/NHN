@@ -17,6 +17,7 @@ public static class MainMenuSceneBuilder
 {
     private const string ScenePath = "Assets/Scenes/MainMenu.unity";
     private const string InGameScenePath = "Assets/Scenes/InGamePrototype.unity";
+    private const string TutorialScenePath = "Assets/Scenes/Tutorial.unity";
     private const string PaperPath = "Assets/Sprite/GomokuPaper.png";
     private const string CowboyPath = "Assets/Sprite/CowBoy.png";
     private const string CylinderPath = "Assets/Sprite/Silinder_front_south.png";
@@ -35,6 +36,7 @@ public static class MainMenuSceneBuilder
         GameObject controllerObject = new GameObject("Western Main Menu Controller");
         WesternMainMenuController controller = controllerObject.AddComponent<WesternMainMenuController>();
         controller.inGameSceneName = "InGamePrototype";
+        controller.tutorialSceneName = "Tutorial";
         controller.paperSprite = LoadFirstSprite(PaperPath);
         controller.cowboySprite = LoadFirstSprite(CowboyPath);
         controller.cylinderSprite = LoadFirstSprite(CylinderPath);
@@ -112,7 +114,8 @@ public static class MainMenuSceneBuilder
         string[] priorityScenes =
         {
             ScenePath,
-            InGameScenePath
+            InGameScenePath,
+            TutorialScenePath
         };
 
         List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>();
