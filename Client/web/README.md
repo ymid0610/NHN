@@ -9,10 +9,14 @@ finds protocol ambiguities a single implementation never notices.
 
 ```bash
 cd Server && ./scripts/run_stack.ps1     # the servers
-python -m http.server 8080 --directory Client/web
+python -m http.server 8080 --directory Client
 ```
 
-Then open <http://localhost:8080>.
+Then open <http://localhost:8080/web/>.
+
+The server root is `Client/`, not `Client/web/`, so the page can reach
+`../Assets/`. The art is referenced in place rather than copied — nothing is
+duplicated into the repo, and nothing here can drift from what Unity uses.
 
 ## Letting someone else connect
 
@@ -85,8 +89,36 @@ never use.
 | | |
 |---|---|
 | `protocol.js` | wire format, framing and the WebSocket connection |
+| `assets.js` | art manifest and loader |
 | `app.js` | screens, packet handling, canvas rendering |
 | `index.html` | markup and styling |
+
+## Art
+
+Uses the project's own western assets: the shooting-range backdrop, the ruled
+paper board, the frying pan, the outlaw (as the decoy), the speed loader, bullet
+holes and the crosshair. Panels, buttons and inputs are the generated western UI
+textures.
+
+Items with no art yet — tumbleweed, balloon, paint can, grenade — are drawn as
+plain shapes. Borrowing an unrelated sprite would read as a different item, and
+a wrong picture is worse than an honest placeholder.
+
+**The board deliberately uses the flat paper, not the pretty one.** There is an
+eight-frame animation of the sheet fluttering as it falls, and it looks far
+better. It is also curled, which would put the grid on a curved surface while
+the server's hit box stays a rectangle — near a cell edge that is exactly the
+difference between a hit and a miss. The board face is therefore the flat
+front-facing frame, drawn to precisely the hit box, so every point that looks
+like board *is* board.
+
+Its source rectangle is measured at load time by scanning the sprite sheet cell
+for opaque pixels, rather than hardcoded. The art is generated; a regenerated
+sheet with different padding would silently misalign every board if those were
+magic numbers.
+
+Loading is non-blocking and every draw path has a fallback, so the client works
+from the first frame and simply gets better looking once the sprites arrive.
 
 ## Keeping the format in step
 

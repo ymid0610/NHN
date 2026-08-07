@@ -4,8 +4,9 @@
     {
       "name": "web-client",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "Client/web"],
-      "port": 8080
+      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "Client"],
+      "port": 8080,
+      "url": "http://localhost:8080"
     }
   ]
 }

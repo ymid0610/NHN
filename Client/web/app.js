@@ -1,4 +1,5 @@
 import * as P from './protocol.js';
+import { Art, loadArt } from './assets.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -208,12 +209,23 @@ function configPanel() {
 }
 
 function screenGame() {
-  const canvas = el('canvas', { id: 'field', width: 960, height: 540 });
-  canvas.onclick = (event) => {
+  const canvas = el('canvas', { id: 'field', width: 1280, height: 720 });
+
+  const toField = (event) => {
     const rect = canvas.getBoundingClientRect();
-    fire(Math.round((event.clientX - rect.left) / rect.width * 1920),
-         Math.round((event.clientY - rect.top) / rect.height * 1080));
+    return {
+      x: Math.round((event.clientX - rect.left) / rect.width * 1920),
+      y: Math.round((event.clientY - rect.top) / rect.height * 1080),
+    };
   };
+
+  canvas.onclick = (event) => {
+    const point = toField(event);
+    fire(point.x, point.y);
+  };
+  canvas.onmousemove = (event) => { aim = toField(event); };
+  canvas.onmouseleave = () => { aim = null; };
+
   view.append(canvas, el('div', { id: 'scores', className: 'scores', style: 'margin-top:10px' }));
   updateScores();
 }
@@ -238,10 +250,23 @@ function updateScores() {
 // ---------------------------------------------------------------------------
 
 const SLOT_COLOURS = ['#f2b134', '#4bbf73', '#4c9be8', '#e5484d'];
+
+/// Fallback colours for the items with no art yet. Drawn as shapes rather than
+/// borrowing an unrelated sprite, which would read as a different item.
 const ITEM_COLOURS = {
-  1: '#8a6f3f', 2: '#c9b18a', 3: '#9aa3b5', 4: '#e05fa0', 5: '#7d5fe0',
-  6: '#5c6470', 7: '#4bbf73',
+  1: '#8a6f3f',  // tumbleweed
+  4: '#e05fa0',  // balloon
+  5: '#7d5fe0',  // paint can
+  6: '#4a5058',  // grenade
 };
+
+/// Muzzle flashes and impact marks, in field coordinates. Purely local: the
+/// server has already decided the outcome, this only makes it visible.
+const effects = [];
+const EFFECT_MS = 260;
+
+/// Where the mouse is on the field, for the crosshair.
+let aim = null;
 
 function drawFrame() {
   paint();
@@ -253,76 +278,173 @@ function drawFrame() {
 /// make the renderer impossible to exercise without a visible window.
 function paint() {
   const canvas = document.getElementById('field');
-  if (canvas) {
-    const g = canvas.getContext('2d');
-    const scale = canvas.width / 1920;
-    g.clearRect(0, 0, canvas.width, canvas.height);
-    g.save();
-    g.scale(scale, scale);
+  if (!canvas) return;
 
-    for (const e of S.entities) {
-      if (e.kind === P.EntityKind.TargetSheet) drawSheet(g, e);
-    }
-    for (const e of S.entities) {
-      if (e.kind === P.EntityKind.Item) drawItem(g, e);
-    }
-    g.restore();
+  const g = canvas.getContext('2d');
+  const scale = canvas.width / 1920;
+  g.clearRect(0, 0, canvas.width, canvas.height);
+  g.save();
+  g.scale(scale, scale);
 
-    if (S.blinded) {
-      g.fillStyle = 'rgba(125,95,224,0.55)';
-      g.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    if (S.stunned) {
-      g.fillStyle = 'rgba(229,72,77,0.25)';
-      g.fillRect(0, 0, canvas.width, canvas.height);
-    }
+  const backdrop = Art.images.background;
+  if (backdrop) {
+    g.drawImage(backdrop, 0, 0, 1920, 1080);
+  } else {
+    g.fillStyle = '#2b1e12';
+    g.fillRect(0, 0, 1920, 1080);
+  }
+
+  for (const e of S.entities) {
+    if (e.kind === P.EntityKind.TargetSheet) drawSheet(g, e);
+  }
+  for (const e of S.entities) {
+    if (e.kind === P.EntityKind.Item) drawItem(g, e);
+  }
+
+  drawEffects(g);
+  if (aim) drawCrosshair(g, aim.x, aim.y);
+
+  g.restore();
+
+  if (S.blinded) {
+    g.fillStyle = 'rgba(125,95,224,0.55)';
+    g.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  if (S.stunned) {
+    g.fillStyle = 'rgba(229,72,77,0.28)';
+    g.fillRect(0, 0, canvas.width, canvas.height);
   }
 }
 
 function drawSheet(g, e) {
   if (!S.board) return;
+
+  const width = e.halfWidth * 2;
+  const height = e.halfHeight * 2;
   const left = e.x - e.halfWidth;
   const top = e.y - e.halfHeight;
-  const cw = (e.halfWidth * 2) / S.board.width;
-  const ch = (e.halfHeight * 2) / S.board.height;
 
-  g.fillStyle = '#efe6d0';
-  g.fillRect(left, top, e.halfWidth * 2, e.halfHeight * 2);
+  const face = Art.boardFace;
+  if (face) {
+    // Drawn to exactly the hit box. The source rect is the measured opaque area
+    // of the sprite, so the paper's edges and the server's rectangle coincide —
+    // every point that looks like board is board.
+    g.drawImage(face.image, face.sx, face.sy, face.sw, face.sh, left, top, width, height);
+  } else {
+    g.fillStyle = '#efe6d0';
+    g.fillRect(left, top, width, height);
+  }
 
-  g.strokeStyle = '#b9ac91';
-  g.lineWidth = 2;
+  const cw = width / S.board.width;
+  const ch = height / S.board.height;
+
+  g.strokeStyle = 'rgba(74, 48, 26, 0.55)';
+  g.lineWidth = Math.max(1.5, Math.min(cw, ch) * 0.05);
   for (let x = 0; x <= S.board.width; x++) {
-    g.beginPath(); g.moveTo(left + x * cw, top); g.lineTo(left + x * cw, top + e.halfHeight * 2); g.stroke();
+    g.beginPath(); g.moveTo(left + x * cw, top); g.lineTo(left + x * cw, top + height); g.stroke();
   }
   for (let y = 0; y <= S.board.height; y++) {
-    g.beginPath(); g.moveTo(left, top + y * ch); g.lineTo(left + e.halfWidth * 2, top + y * ch); g.stroke();
+    g.beginPath(); g.moveTo(left, top + y * ch); g.lineTo(left + width, top + y * ch); g.stroke();
   }
+
+  const hole = Art.images.bulletHole;
+  const radius = Math.min(cw, ch) * 0.34;
 
   for (let i = 0; i < S.cells.length; i++) {
     const owner = S.cells[i];
     if (owner === 0xFF) continue;
     const cx = left + (i % S.board.width) * cw + cw / 2;
-    const cy = top + Math.floor(i / S.board.width) * ch + cy0(ch);
-    g.fillStyle = SLOT_COLOURS[owner % SLOT_COLOURS.length];
+    const cy = top + Math.floor(i / S.board.width) * ch + ch / 2;
+    const colour = SLOT_COLOURS[owner % SLOT_COLOURS.length];
+
+    if (hole) {
+      g.drawImage(hole, cx - radius, cy - radius, radius * 2, radius * 2);
+    }
+    // A ring in the owner's colour: the hole art is the same for everyone, and
+    // whose mark it is has to be readable at a glance.
+    g.strokeStyle = colour;
+    g.lineWidth = Math.max(2, radius * 0.28);
     g.beginPath();
-    g.arc(cx, cy, Math.min(cw, ch) * 0.32, 0, Math.PI * 2);
-    g.fill();
+    g.arc(cx, cy, radius * (hole ? 1.0 : 0.7), 0, Math.PI * 2);
+    g.stroke();
+    if (!hole) {
+      g.fillStyle = colour;
+      g.fill();
+    }
   }
 }
-const cy0 = (ch) => ch / 2;
 
 function drawItem(g, e) {
-  g.fillStyle = ITEM_COLOURS[e.item] ?? '#666';
-  g.fillRect(e.x - e.halfWidth, e.y - e.halfHeight, e.halfWidth * 2, e.halfHeight * 2);
-  g.fillStyle = '#0d0f14';
-  g.font = 'bold 20px monospace';
+  const sprite = Art.itemSprite(e.item);
+  const width = e.halfWidth * 2;
+  const height = e.halfHeight * 2;
+
+  if (sprite) {
+    // Item art is square with generous padding; drawing it oversized relative
+    // to the hit box keeps it readable without making it feel bigger to hit.
+    const scale = 2.1;
+    g.drawImage(sprite, e.x - (width * scale) / 2, e.y - (height * scale) / 2,
+                width * scale, height * scale);
+    return;
+  }
+
+  g.fillStyle = ITEM_COLOURS[e.item] ?? '#6b5a44';
+  g.strokeStyle = 'rgba(30, 18, 8, 0.85)';
+  g.lineWidth = 3;
+  g.beginPath();
+  g.arc(e.x, e.y, Math.max(e.halfWidth, e.halfHeight), 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+
+  g.fillStyle = '#1b1109';
+  g.font = 'bold 26px Georgia, serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText((P.ItemKind[e.item] ?? '?')[0].toUpperCase(), e.x, e.y);
 }
 
+function drawCrosshair(g, x, y) {
+  const sprite = Art.images.crosshair;
+  const size = 84;
+  if (sprite) {
+    g.drawImage(sprite, x - size / 2, y - size / 2, size, size);
+    return;
+  }
+  g.strokeStyle = '#c0392b';
+  g.lineWidth = 3;
+  g.beginPath();
+  g.arc(x, y, size / 3, 0, Math.PI * 2);
+  g.stroke();
+}
+
+function addEffect(x, y) {
+  effects.push({ x, y, at: performance.now() });
+  if (effects.length > 40) effects.shift();
+}
+
+function drawEffects(g) {
+  const now = performance.now();
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const age = now - effects[i].at;
+    if (age > EFFECT_MS) { effects.splice(i, 1); continue; }
+
+    const t = age / EFFECT_MS;
+    const { x, y } = effects[i];
+    g.globalAlpha = 1 - t;
+    g.fillStyle = '#ffd98a';
+    g.beginPath();
+    g.arc(x, y, 10 + 34 * t, 0, Math.PI * 2);
+    g.fill();
+    g.globalAlpha = 1;
+  }
+}
+
 function fire(x, y) {
   if (!S.inst || !S.inst.open) return;
+  // Shown immediately, before the server has ruled on it. The flash is only
+  // feedback that the trigger was pulled; whether anything was hit comes back
+  // as S_ShotResolved and is what actually changes the board.
+  addEffect(x, y);
   send(S.inst, new P.Writer(P.PacketId.C_Fire)
     .i32(x).i32(y).u32(S.snapshotTick).u16(S.fireSeq++));
 }
@@ -624,6 +746,7 @@ document.getElementById('chatText').addEventListener('keydown', (event) => {
 // and aim from the console is the point, and there is nothing here a player
 // could not already see on screen.
 window.game = S;
+window.art = Art;
 window.fireAt = fire;
 window.paint = paint;
 /// Centre of a board cell right now, in field coordinates, or null when the
@@ -642,3 +765,12 @@ window.cellPoint = (index) => {
 
 render();
 requestAnimationFrame(drawFrame);
+
+// Art loads in the background. Every draw path has a fallback, so the client is
+// usable from the first frame and simply gets better looking once the sprites
+// arrive — a loading gate would only stand between the user and a working lobby.
+loadArt((done, total) => {
+  const label = document.getElementById('hdrArt');
+  if (!label) return;
+  label.textContent = done < total ? `art ${done}/${total}` : '';
+}).then(() => log('art loaded', 'ok'));
