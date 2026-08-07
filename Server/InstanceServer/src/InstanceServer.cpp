@@ -155,6 +155,12 @@ void InstanceServer::RegisterClientHandlers() {
 void InstanceServer::RegisterPeerHandlers() {
     _peerDispatcher.On<P_InstanceCreate>(
         [this](const PeerLinkSessionRef& link, const P_InstanceCreate& packet) {
+            // Logged on entry, not just on success: when a handoff expires the
+            // first thing worth knowing is whether the request reached here at
+            // all, and the success line below cannot answer that.
+            LOG_INFO("instance create requested: id {} room {} with {} players",
+                     packet.instanceId, packet.roomId, packet.members.size());
+
             P_InstanceCreateAck ack;
             ack.instanceId = packet.instanceId;
 

@@ -123,6 +123,19 @@ void PeerLink::HandleDisconnected(const PeerLinkSessionRef& session) {
 void PeerLink::HandlePacket(const PeerLinkSessionRef& session, uint8* buffer, int32 length) {
     const PacketId id = PeekPacketId(buffer, length);
 
+    // Every inbound control packet, at debug level.
+    //
+    // There is a known intermittent fault where a satellite keeps its control
+    // link alive — heartbeats flow, so the match server never drops it — yet
+    // never acts on anything else, and every handoff assigned to it expires
+    // with nothing in its log to say why. This line is what distinguishes "the
+    // packet never arrived" from "it arrived and was not dispatched"; run the
+    // stack with -LogLevel debug when it happens.
+    if (id != PacketId::P_Heartbeat && id != PacketId::P_HeartbeatAck) {
+        LOG_DEBUG("control link received packet id {} ({} bytes)", static_cast<uint16>(id),
+                  length);
+    }
+
     // The handshake and heartbeat are the link's own business; everything else
     // belongs to the owning server.
     if (id == PacketId::P_ServerHelloAck) {
