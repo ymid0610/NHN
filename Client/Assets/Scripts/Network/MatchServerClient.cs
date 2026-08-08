@@ -26,6 +26,20 @@ namespace NHN.Network
         public event Action<ServerRoomDetail> RoomChanged;
         public event Action<List<ServerRoomSummary>, uint, ushort> RoomListReceived;
         public event Action<ServerGameStartingInfo> GameStarting;
+        public event Action<ServerResultCode, ServerRoomMember> BotChanged;
+        public event Action<ServerMatchConfig, uint> RoomConfigChanged;
+
+        /// The room's current settings, and the item set the server will really
+        /// spawn under them. Retained because the settings panel has to render
+        /// what is in force, not only react to changes.
+        public ServerMatchConfig CurrentConfig { get; private set; }
+        public uint EffectiveItemMask { get; private set; }
+        public event Action<ServerQuickMatchStatus> QuickMatchStatus;
+        public event Action<ServerResultCode> QuickMatchCancelled;
+
+        /// Latest queue state, so a screen opening mid-wait has something to show.
+        public ServerQuickMatchStatus LastQuickMatch { get; private set; }
+        public bool IsQuickMatching { get; private set; }
 
         private readonly object sendLock = new object();
         private readonly object actionLock = new object();
@@ -125,9 +139,45 @@ namespace NHN.Network
             return Send(ServerPacketId.C_RoomStart, null);
         }
 
+        /// <summary>
+        /// Joins the matchmaking queue for a mode.
+        ///
+        /// No room is created and none is joined: the server gathers enough
+        /// players, then starts an instance with that mode's default settings.
+        /// Progress arrives as QuickMatchStatus and the match itself as
+        /// GameStarting.
+        /// </summary>
         public bool QuickMatch(ServerGameMode mode)
         {
             return Send(ServerPacketId.C_QuickMatch, writer => writer.Write(mode));
+        }
+
+        public bool CancelQuickMatch()
+        {
+            return Send(ServerPacketId.C_QuickMatchCancel, null);
+        }
+
+        /// <summary>
+        /// Host-only. Adds a bot to the room; it takes a slot and counts
+        /// towards the minimum needed to start.
+        /// </summary>
+        public bool AddBot(byte difficulty)
+        {
+            return Send(ServerPacketId.C_RoomAddBot, writer => writer.Write(difficulty));
+        }
+
+        public bool RemoveBot(ulong botSessionId)
+        {
+            return Send(ServerPacketId.C_RoomRemoveBot, writer => writer.Write(botSessionId));
+        }
+
+        public bool SetBotDifficulty(ulong botSessionId, byte difficulty)
+        {
+            return Send(ServerPacketId.C_RoomSetBotDifficulty, writer =>
+            {
+                writer.Write(botSessionId);
+                writer.Write(difficulty);
+            });
         }
 
         public bool SetRoomConfig(ServerMatchConfig config)
@@ -347,6 +397,15 @@ namespace NHN.Network
                     case ServerPacketId.S_RoomClosed:
                         HandleRoomClosed(reader);
                         break;
+                    case ServerPacketId.S_QuickMatchQueued:
+                        HandleQuickMatchQueued(reader);
+                        break;
+                    case ServerPacketId.S_QuickMatchCancelled:
+                        HandleQuickMatchCancelled(reader);
+                        break;
+                    case ServerPacketId.S_RoomBotChanged:
+                        HandleBotChanged(reader);
+                        break;
                     case ServerPacketId.S_GameStarting:
                         HandleGameStarting(reader);
                         break;
@@ -483,11 +542,18 @@ namespace NHN.Network
             ServerMatchConfig config = reader.ReadMatchConfig();
             uint effectiveItemMask = reader.ReadUInt32();
             bool accepted = reader.ReadBool();
-            EnqueueStatus(string.Format("방 설정 반영: ammo {0}, wave {1}, items 0x{2:X}{3}",
-                config.AmmoPerWave,
-                config.WaveLimit,
-                effectiveItemMask,
-                accepted ? string.Empty : " (서버 조정됨)"));
+
+            Enqueue(delegate
+            {
+                CurrentConfig = config;
+                EffectiveItemMask = effectiveItemMask;
+                RoomConfigChanged?.Invoke(config, effectiveItemMask);
+                StatusChanged?.Invoke(string.Format("방 설정: {0}라운드, 탄약 {1}, 웨이브 {2}{3}",
+                    config.Rounds,
+                    config.AmmoPerWave == GameField.Unlimited ? "무제한" : config.AmmoPerWave.ToString(),
+                    config.WaveLimit == GameField.Unlimited ? "무제한" : config.WaveLimit.ToString(),
+                    accepted ? string.Empty : " (서버가 조정함)"));
+            });
         }
 
         private void HandleRoomMemberJoined(PacketReader reader)
@@ -601,6 +667,70 @@ namespace NHN.Network
             });
         }
 
+        private void HandleBotChanged(PacketReader reader)
+        {
+            ServerResultCode result = (ServerResultCode)reader.ReadUInt16();
+            ServerRoomMember bot = reader.ReadRoomMember();
+
+            Enqueue(delegate
+            {
+                if (result != ServerResultCode.Ok)
+                {
+                    StatusChanged?.Invoke("봇 변경 실패: " + result);
+                    BotChanged?.Invoke(result, bot);
+                    return;
+                }
+
+                // Upsert: the same packet announces a new bot and a difficulty
+                // change, and the roster should end up the same either way.
+                ServerRoomDetail room = CurrentRoom;
+                List<ServerRoomMember> members = CloneMembers(room);
+                members.RemoveAll(item => item.SessionId == bot.SessionId);
+                members.Add(bot);
+                room.Members = members;
+                ApplyRoom(room);
+
+                BotChanged?.Invoke(result, bot);
+                StatusChanged?.Invoke(string.Format("{0} 난이도 {1}", bot.Nickname, bot.BotDifficulty));
+            });
+        }
+
+        private void HandleQuickMatchQueued(PacketReader reader)
+        {
+            ServerQuickMatchStatus status = new ServerQuickMatchStatus
+            {
+                Result = (ServerResultCode)reader.ReadUInt16(),
+                Mode = (ServerGameMode)reader.ReadByte(),
+                Waiting = reader.ReadByte(),
+                Needed = reader.ReadByte(),
+                Capacity = reader.ReadByte()
+            };
+
+            Enqueue(delegate
+            {
+                LastQuickMatch = status;
+                IsQuickMatching = status.IsQueued;
+                QuickMatchStatus?.Invoke(status);
+                StatusChanged?.Invoke(status.IsQueued
+                    ? string.Format("{0} 대기 중 {1}/{2}",
+                        ServerProtocolText.ToDisplay(status.Mode), status.Waiting, status.Capacity)
+                    : "빠른 대전 실패: " + status.Result);
+            });
+        }
+
+        private void HandleQuickMatchCancelled(PacketReader reader)
+        {
+            ServerResultCode result = (ServerResultCode)reader.ReadUInt16();
+            Enqueue(delegate
+            {
+                IsQuickMatching = false;
+                QuickMatchCancelled?.Invoke(result);
+                StatusChanged?.Invoke(result == ServerResultCode.Ok
+                    ? "빠른 대전 취소됨"
+                    : "취소할 대기열 없음");
+            });
+        }
+
         private void HandleGameStarting(PacketReader reader)
         {
             ServerGameStartingInfo info = new ServerGameStartingInfo
@@ -613,6 +743,8 @@ namespace NHN.Network
 
             Enqueue(delegate
             {
+                // Whether we queued or came from a room, the wait is over.
+                IsQuickMatching = false;
                 GameStarting?.Invoke(info);
                 StatusChanged?.Invoke(string.Format("게임 인스턴스 준비: {0}:{1}", info.Host, info.Port));
             });

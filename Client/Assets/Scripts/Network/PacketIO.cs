@@ -32,6 +32,11 @@ namespace NHN.Network
             writer.Write(value);
         }
 
+        public void Write(int value)
+        {
+            writer.Write(value);
+        }
+
         public void Write(uint value)
         {
             writer.Write(value);
@@ -117,6 +122,14 @@ namespace NHN.Network
             return value;
         }
 
+        public int ReadInt32()
+        {
+            Ensure(4);
+            int value = BitConverter.ToInt32(buffer, position);
+            position += 4;
+            return value;
+        }
+
         public uint ReadUInt32()
         {
             Ensure(4);
@@ -150,13 +163,26 @@ namespace NHN.Network
         public List<T> ReadList<T>(Func<PacketReader, T> reader)
         {
             ushort count = ReadUInt16();
-            List<T> values = new List<T>(count);
+
+            // Size the list from what is actually left in the frame, not from
+            // the declared count. Every element on the wire costs at least a
+            // byte, so a count larger than the remaining bytes is a malformed
+            // packet — and pre-allocating for it would let a hostile or broken
+            // server make us reserve 64K entries from a four-byte body. The
+            // reads below still fail properly; this only stops the allocation
+            // from happening first.
+            List<T> values = new List<T>(Math.Min((int)count, Remaining));
             for (int i = 0; i < count; i++)
             {
                 values.Add(reader(this));
             }
 
             return values;
+        }
+
+        public int Remaining
+        {
+            get { return buffer.Length - position; }
         }
 
         public ServerRoomMember ReadRoomMember()
@@ -167,7 +193,8 @@ namespace NHN.Network
                 Nickname = ReadString(),
                 Slot = ReadByte(),
                 IsHost = ReadBool(),
-                IsReady = ReadBool()
+                IsReady = ReadBool(),
+                BotDifficulty = ReadByte()
             };
         }
 
@@ -211,6 +238,40 @@ namespace NHN.Network
                 AmmoPerWave = ReadByte(),
                 WaveLimit = ReadByte(),
                 ItemMask = ReadUInt32()
+            };
+        }
+
+        public ServerEntityState ReadEntityState()
+        {
+            return new ServerEntityState
+            {
+                EntityId = ReadUInt32(),
+                Kind = (ServerEntityKind)ReadByte(),
+                Item = (ServerItemKind)ReadByte(),
+                X = ReadInt32(),
+                Y = ReadInt32(),
+                HalfWidth = ReadInt32(),
+                HalfHeight = ReadInt32()
+            };
+        }
+
+        public ServerBoardSpec ReadBoardSpec()
+        {
+            return new ServerBoardSpec
+            {
+                Width = ReadByte(),
+                Height = ReadByte(),
+                WinLength = ReadByte()
+            };
+        }
+
+        public ServerPlayerScore ReadPlayerScore()
+        {
+            return new ServerPlayerScore
+            {
+                SessionId = ReadUInt64(),
+                Slot = ReadByte(),
+                Score = ReadByte()
             };
         }
 

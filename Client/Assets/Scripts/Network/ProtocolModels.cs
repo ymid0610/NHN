@@ -30,6 +30,9 @@ namespace NHN.Network
         C_QuickMatch = 1024,
         C_RoomSetConfig = 1025,
         S_RoomConfigChanged = 1026,
+        C_QuickMatchCancel = 1027,
+        S_QuickMatchQueued = 1028,
+        S_QuickMatchCancelled = 1029,
 
         S_RoomMemberJoined = 1030,
         S_RoomMemberLeft = 1031,
@@ -38,7 +41,37 @@ namespace NHN.Network
         S_RoomKicked = 1034,
         S_RoomStateChanged = 1035,
         S_RoomClosed = 1036,
-        S_GameStarting = 1037
+        S_GameStarting = 1037,
+
+        C_RoomAddBot = 1040,
+        C_RoomRemoveBot = 1041,
+        C_RoomSetBotDifficulty = 1042,
+        S_RoomBotChanged = 1043,
+
+        // -- client <-> instance ------------------------------------------------
+        C_InstHello = 3000,
+        S_InstHelloAck = 3001,
+        C_InstLeave = 3002,
+        S_InstMemberJoined = 3003,
+        S_InstMemberLeft = 3004,
+        S_InstStart = 3005,
+        S_InstEnd = 3006,
+
+        // -- the game -----------------------------------------------------------
+        C_Fire = 3100,
+        S_FireRejected = 3101,
+        S_ShotResolved = 3102,
+        S_MatchSetup = 3110,
+        S_RoundStart = 3111,
+        S_RoundEnd = 3112,
+        S_WaveStart = 3113,
+        S_WaveEnd = 3114,
+        S_WorldSnapshot = 3115,
+        S_CellClaimed = 3116,
+        S_ItemTriggered = 3117,
+        S_StatusChanged = 3118,
+        S_AmmoChanged = 3119,
+        S_GameOver = 3120
     }
 
     public enum ServerGameMode : byte
@@ -140,6 +173,20 @@ namespace NHN.Network
         public byte Slot;
         public bool IsHost;
         public bool IsReady;
+        /// 0 for a person, 1..5 for a bot.
+        public byte BotDifficulty;
+
+        public bool IsBot
+        {
+            get { return BotDifficulty != 0; }
+        }
+    }
+
+    public static class BotLimits
+    {
+        public const byte MinDifficulty = 1;
+        public const byte MaxDifficulty = 5;
+        public const byte DefaultDifficulty = 3;
     }
 
     [Serializable]
@@ -170,6 +217,38 @@ namespace NHN.Network
         public bool IsValid
         {
             get { return RoomId != 0; }
+        }
+    }
+
+    /// <summary>
+    /// Progress in the quick-match queue.
+    ///
+    /// There is no room behind this: the next thing to arrive after enough
+    /// players have gathered is S_GameStarting.
+    /// </summary>
+    [Serializable]
+    public struct ServerQuickMatchStatus
+    {
+        public ServerResultCode Result;
+        public ServerGameMode Mode;
+        /// Players waiting for this mode, including us.
+        public byte Waiting;
+        /// Enough to start once the server's fill window closes.
+        public byte Needed;
+        /// Starts at once on reaching this many.
+        public byte Capacity;
+
+        /// <summary>
+        /// True only for a status the server actually sent.
+        ///
+        /// The mode is part of the test on purpose: Ok is zero, so a
+        /// default-constructed status would otherwise read as "queued" before
+        /// any reply had arrived, and a screen checking this on open would show
+        /// a queue nobody had joined.
+        /// </summary>
+        public bool IsQueued
+        {
+            get { return Result == ServerResultCode.Ok && Mode != ServerGameMode.None; }
         }
     }
 
