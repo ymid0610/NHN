@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NHN.Network;
 using UnityEngine;
 
 #if ENABLE_INPUT_SYSTEM
@@ -11,8 +12,6 @@ namespace NHN.InGame
     {
         private const string PrefGameMode = "NHN.GameMode";
         private const string PrefMaxPlayers = "NHN.MaxPlayers";
-        private const string PrefBlockOccupied = "NHN.BlockOccupiedCells";
-        private const string PrefAllowOverline = "NHN.AllowOverline";
         private const string PrefItemsEnabled = "NHN.ItemsEnabled";
         private const string PaperIdleResourcePath = "Sprite/Generated/PaperBoardBlankIdleGenerated";
         private const string PaperFlyingResourcePath = "Sprite/Generated/PaperBoardBlankFlyingGenerated";
@@ -47,12 +46,18 @@ namespace NHN.InGame
         public bool preferAssignedScarecrowSprites = true;
 
         [Header("Game Rules")]
-        public GameMode gameMode = GameMode.Gomoku;
+        public ServerGameMode gameMode = ServerGameMode.Gomoku9;
         [Range(1, 4)] public int maxPlayers = 4;
-        public bool blockOccupiedCells = true;
-        public bool allowOverline = true;
         public bool itemEnabled;
         public bool requireScarecrowAttached = true;
+
+        /// Set by NetworkInGameController when a real match is running.
+        ///
+        /// The sprite loading below is still wanted — the networked game borrows
+        /// it — but none of the simulation is: the instance server owns the
+        /// board, the turn order, the ammo and the item spawns, and a second
+        /// copy of those rules running here would only ever disagree with it.
+        [HideInInspector] public bool networkDriven;
 
         [Header("Board / Grid Tuning")]
         public bool applyInGameBoardWorldSize = true;
@@ -143,27 +148,105 @@ namespace NHN.InGame
             EnsureBoardGridRenderer();
             EnsureGeneratedBulletImpactSprites();
             EnsureGeneratedScarecrowSprites();
+
+            // Decide this here rather than waiting to be told. The switch used
+            // to be thrown by NetworkInGameController.Awake, which meant a scene
+            // without that component quietly played the offline hot-seat game
+            // instead of the match the player had just joined — the failure was
+            // silent and looked exactly like the game being turn-based.
+            if (NetworkGameSession.IsNetworked)
+            {
+                networkDriven = true;
+                EnsureNetworkController();
+            }
+
+            if (networkDriven)
+            {
+                // Everything above only loads art. Stop before anything that
+                // would start a local match, and clear the offline scene
+                // dressing out of the way of the server's.
+                DisableLocalPresentation();
+                return;
+            }
+
             EnsureScarecrowCarrier();
             EnsureFryingPanVisual();
             EnsureResultOverlay();
             ResetMatch();
         }
 
+        /// <summary>
+        /// Takes every offline visual off the screen.
+        ///
+        /// Hiding the paper alone was not enough. The result overlay is only
+        /// ever dismissed by Hide(), which the networked path never reaches, so
+        /// a scene with one wired left a second board floating over the real
+        /// one; and the scarecrow carrier keeps flying its own paper along a
+        /// route the server knows nothing about.
+        /// </summary>
+        private void DisableLocalPresentation()
+        {
+            SetBoardPaperVisible(false);
+            SetWorldShotMarksVisible(false);
+
+            if (resultOverlay != null)
+            {
+                resultOverlay.Hide();
+            }
+
+            if (boardGridRenderer != null)
+            {
+                boardGridRenderer.SetVisible(false);
+            }
+
+            if (scarecrowCarrier != null)
+            {
+                // Disabled rather than hidden: its Update would go on driving
+                // the board transform the server is now positioning.
+                scarecrowCarrier.gameObject.SetActive(false);
+            }
+
+            SetFryingPanVisible(false);
+        }
+
+        /// <summary>
+        /// Adds the server-driven controller if the scene has not been given
+        /// one.
+        ///
+        /// It needs no inspector wiring of its own — it borrows the sprites and
+        /// references already set up on this component — so requiring someone to
+        /// drag it in was a step that could only ever be forgotten.
+        /// </summary>
+        private void EnsureNetworkController()
+        {
+            if (FindFirstObjectByType<NetworkInGameController>() != null)
+            {
+                return;
+            }
+
+            NetworkInGameController controller = gameObject.AddComponent<NetworkInGameController>();
+            controller.artSource = this;
+            controller.targetCamera = targetCamera;
+        }
+
         private void ApplyMenuLaunchOptions()
         {
             if (PlayerPrefs.HasKey(PrefGameMode))
             {
-                gameMode = (GameMode)Mathf.Clamp(PlayerPrefs.GetInt(PrefGameMode, (int)gameMode), 0, 1);
+                gameMode = ModeRules.Sanitise((ServerGameMode)PlayerPrefs.GetInt(PrefGameMode, (int)gameMode));
             }
 
             maxPlayers = PlayerPrefs.GetInt(PrefMaxPlayers, maxPlayers);
-            blockOccupiedCells = PlayerPrefs.GetInt(PrefBlockOccupied, blockOccupiedCells ? 1 : 0) == 1;
-            allowOverline = PlayerPrefs.GetInt(PrefAllowOverline, allowOverline ? 1 : 0) == 1;
             itemEnabled = PlayerPrefs.GetInt(PrefItemsEnabled, itemEnabled ? 1 : 0) == 1;
         }
 
         private void Update()
         {
+            if (networkDriven)
+            {
+                return;
+            }
+
             SyncWorldShotMarksVisibility();
 
             if (WasResetPressed())
@@ -295,7 +378,7 @@ namespace NHN.InGame
             SyncWorldShotMarksVisibility();
         }
 
-        public void SetMode(GameMode mode)
+        public void SetMode(ServerGameMode mode)
         {
             if (gameMode == mode)
             {
@@ -303,7 +386,7 @@ namespace NHN.InGame
             }
 
             gameMode = mode;
-            maxPlayers = mode == GameMode.Gomoku ? 4 : 2;
+            maxPlayers = ModeRules.For(mode).Capacity;
             ResetMatch();
         }
 
@@ -341,12 +424,14 @@ namespace NHN.InGame
                 return;
             }
 
-            bool occupied = blockOccupiedCells && boardState.GetOwner(cell) != 0;
+            // First come, first served — the server's rule, so practice
+            // teaches the same thing live play enforces.
+            bool occupied = boardState.GetOwner(cell) != 0;
             bool placed = false;
 
             if (!occupied)
             {
-                placed = boardState.TryPlace(cell, currentPlayer, blockOccupiedCells, out string reason);
+                placed = boardState.TryPlace(cell, currentPlayer, out string reason);
                 if (!placed)
                 {
                     statusMessage = reason;
@@ -373,9 +458,8 @@ namespace NHN.InGame
             shotRecords.Add(new ShotRecord(cell, currentPlayer));
             SpawnMarker(cell, currentPlayer);
 
-            int winLength = gameMode == GameMode.Gomoku ? 5 : 3;
-            bool overlineAllowed = gameMode != GameMode.Gomoku || allowOverline;
-            if (boardState.TryGetWinningLine(cell, currentPlayer, winLength, overlineAllowed, winningLineCells))
+            int winLength = ModeRules.For(gameMode).WinLength;
+            if (boardState.TryGetWinningLine(cell, currentPlayer, winLength, winningLineCells))
             {
                 winner = currentPlayer;
                 ShowRoundResult($"{GetPlayerDisplayName(currentPlayer)} Win");
@@ -1103,7 +1187,9 @@ namespace NHN.InGame
             markerTransform.localPosition = boardTarget.CellToLocal(cell);
             markerTransform.localRotation = Quaternion.identity;
 
-            float targetWorldSize = gameMode == GameMode.Gomoku ? gomokuMarkerWorldSize : ticTacToeMarkerWorldSize;
+            float targetWorldSize = ModeRules.For(gameMode).UsesSmallMarker
+                ? gomokuMarkerWorldSize
+                : ticTacToeMarkerWorldSize;
             Vector3 finalScale = Vector3.one * (targetWorldSize * finalBulletHoleScaleMultiplier / GetSpriteSourceSize(markerSprite != null ? markerSprite : firstImpactSprite));
             Vector3 impactScale = Vector3.one * (targetWorldSize * impactAnimationScaleMultiplier / GetSpriteSourceSize(GetLastBulletImpactSprite() != null ? GetLastBulletImpactSprite() : firstImpactSprite));
             Transform visualTransform = CreateBulletImpactMarkerVisual(
@@ -1309,17 +1395,17 @@ namespace NHN.InGame
 
         private int GetBoardSize()
         {
-            return gameMode == GameMode.Gomoku ? 15 : 3;
+            return ModeRules.For(gameMode).BoardSize;
         }
 
         private int GetShotsPerTurn()
         {
-            return gameMode == GameMode.Gomoku ? 6 : 1;
+            return ModeRules.For(gameMode).DefaultAmmo;
         }
 
         private int GetPlayerCount()
         {
-            return gameMode == GameMode.Gomoku ? Mathf.Clamp(maxPlayers, 1, 4) : Mathf.Clamp(maxPlayers, 1, 2);
+            return Mathf.Clamp(maxPlayers, 1, ModeRules.For(gameMode).Capacity);
         }
 
         public string GetPlayerDisplayName(int player)

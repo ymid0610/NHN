@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NHN.Network;
 using UnityEngine;
 
 namespace NHN.InGame
@@ -35,7 +36,7 @@ namespace NHN.InGame
         private readonly List<ShotRecord> replayShots = new List<ShotRecord>();
         private readonly List<Vector2Int> winningCells = new List<Vector2Int>();
         private int replayBoardSize;
-        private GameMode replayMode;
+        private ServerGameMode replayMode;
         private int nextRevealIndex;
         private int winnerPlayer;
         private string winnerName = string.Empty;
@@ -49,7 +50,7 @@ namespace NHN.InGame
         public bool IsVisible => gameObject.activeSelf;
         public bool IsPlaybackComplete => playbackComplete;
 
-        public void Show(Sprite boardSprite, IReadOnlyList<ShotRecord> shots, int boardSize, GameMode mode)
+        public void Show(Sprite boardSprite, IReadOnlyList<ShotRecord> shots, int boardSize, ServerGameMode mode)
         {
             Show(boardSprite, shots, boardSize, mode, null, 0, string.Empty, null);
         }
@@ -58,7 +59,7 @@ namespace NHN.InGame
             Sprite boardSprite,
             IReadOnlyList<ShotRecord> shots,
             int boardSize,
-            GameMode mode,
+            ServerGameMode mode,
             IReadOnlyList<Vector2Int> winLineCells,
             int winner,
             string winningPlayerName,
@@ -181,7 +182,7 @@ namespace NHN.InGame
             boardRenderer.transform.localScale = Vector3.one * (Mathf.Max(boardWorldSize.x, boardWorldSize.y) / spriteSize * Mathf.Max(0.1f, boardImageScaleMultiplier));
         }
 
-        private void SpawnMarker(ShotRecord shot, int boardSize, GameMode mode, bool playImpact)
+        private void SpawnMarker(ShotRecord shot, int boardSize, ServerGameMode mode, bool playImpact)
         {
             Sprite markerSprite = GetFinalMarkerSprite();
             Sprite firstSprite = GetFirstImpactSprite();
@@ -196,7 +197,9 @@ namespace NHN.InGame
             markerTransform.localPosition = CellToLocal(shot.cell, boardSize);
             markerTransform.localRotation = Quaternion.identity;
 
-            float targetSize = mode == GameMode.Gomoku ? gomokuMarkerWorldSize : ticTacToeMarkerWorldSize;
+            float targetSize = ModeRules.For(mode).UsesSmallMarker
+                ? gomokuMarkerWorldSize
+                : ticTacToeMarkerWorldSize;
             Vector3 finalScale = Vector3.one * (targetSize * finalBulletHoleScaleMultiplier / GetSpriteSourceSize(markerSprite != null ? markerSprite : firstSprite));
             Vector3 impactScale = Vector3.one * (targetSize * impactAnimationScaleMultiplier / GetSpriteSourceSize(GetLastImpactSprite() != null ? GetLastImpactSprite() : firstSprite));
             CreateBulletImpactMarkerVisual(

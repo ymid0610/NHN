@@ -25,7 +25,14 @@ namespace NHN.InGame
             return IsInside(cell) ? cells[cell.x, cell.y] : -1;
         }
 
-        public bool TryPlace(Vector2Int cell, int player, bool blockOccupiedCells, out string reason)
+        /// <summary>
+        /// Claims a cell for a player, first come first served.
+        ///
+        /// There is no "allow re-shooting" option: the server's Board::Claim
+        /// refuses a cell that already has an owner, and in simultaneous play
+        /// that rule *is* the contest.
+        /// </summary>
+        public bool TryPlace(Vector2Int cell, int player, out string reason)
         {
             if (!IsInside(cell))
             {
@@ -33,7 +40,7 @@ namespace NHN.InGame
                 return false;
             }
 
-            if (blockOccupiedCells && cells[cell.x, cell.y] != 0)
+            if (cells[cell.x, cell.y] != 0)
             {
                 reason = "Already shot";
                 return false;
@@ -44,12 +51,19 @@ namespace NHN.InGame
             return true;
         }
 
-        public bool HasWinnerFrom(Vector2Int origin, int player, int winLength, bool allowOverline)
+        public bool HasWinnerFrom(Vector2Int origin, int player, int winLength)
         {
-            return TryGetWinningLine(origin, player, winLength, allowOverline, null);
+            return TryGetWinningLine(origin, player, winLength, null);
         }
 
-        public bool TryGetWinningLine(Vector2Int origin, int player, int winLength, bool allowOverline, List<Vector2Int> winningCells)
+        /// <summary>
+        /// Finds a completed line through @p origin.
+        ///
+        /// A run longer than winLength counts. The server tests
+        /// `run >= _winLength` in Board::CompletesLine, so six in a row is a win
+        /// and there is no overline restriction to mirror.
+        /// </summary>
+        public bool TryGetWinningLine(Vector2Int origin, int player, int winLength, List<Vector2Int> winningCells)
         {
             if (!IsInside(origin) || player <= 0)
             {
@@ -67,7 +81,7 @@ namespace NHN.InGame
 
             foreach (Vector2Int direction in directions)
             {
-                if (TryCollectWinningLine(origin, player, direction, winLength, allowOverline, winningCells))
+                if (TryCollectWinningLine(origin, player, direction, winLength, winningCells))
                 {
                     return true;
                 }
@@ -77,7 +91,7 @@ namespace NHN.InGame
             return false;
         }
 
-        private bool TryCollectWinningLine(Vector2Int origin, int player, Vector2Int direction, int winLength, bool allowOverline, List<Vector2Int> winningCells)
+        private bool TryCollectWinningLine(Vector2Int origin, int player, Vector2Int direction, int winLength, List<Vector2Int> winningCells)
         {
             List<Vector2Int> line = new List<Vector2Int>();
             Vector2Int reverse = new Vector2Int(-direction.x, -direction.y);
@@ -100,14 +114,7 @@ namespace NHN.InGame
                 current += direction;
             }
 
-            if (allowOverline)
-            {
-                if (line.Count < winLength)
-                {
-                    return false;
-                }
-            }
-            else if (line.Count != winLength)
+            if (line.Count < winLength)
             {
                 return false;
             }

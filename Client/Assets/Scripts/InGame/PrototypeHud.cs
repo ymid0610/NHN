@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using NHN.Network;
 using UnityEngine;
 
 namespace NHN.InGame
@@ -5,6 +7,9 @@ namespace NHN.InGame
     public sealed class PrototypeHud : MonoBehaviour
     {
         public LocalInGameController controller;
+        /// Takes over when a real match is running. Optional; found at startup
+        /// if the scene does not wire it.
+        public NetworkInGameController networkController;
         public Texture2D playerHudPanelTexture;
 
         [Header("HUD Layout")]
@@ -31,6 +36,21 @@ namespace NHN.InGame
 
         private void OnGUI()
         {
+            // Resolved lazily, not in Awake: the networked controller is added
+            // during LocalInGameController.Start when a match is running, which
+            // is after every Awake has been called.
+            if (networkController == null)
+            {
+                networkController = FindFirstObjectByType<NetworkInGameController>();
+            }
+
+            if (networkController != null && networkController.HasMatch)
+            {
+                EnsureStyles();
+                DrawNetworkHud();
+                return;
+            }
+
             if (controller == null)
             {
                 return;
@@ -56,21 +76,22 @@ namespace NHN.InGame
             }
 
             GUILayout.Space(8f);
-            controller.blockOccupiedCells = GUILayout.Toggle(controller.blockOccupiedCells, "Block already-shot cells");
-            controller.allowOverline = GUILayout.Toggle(controller.allowOverline, "Allow six-in-a-row");
+            // No re-shoot or overline toggles: the server owns both rules —
+            // a cell goes to whoever claims it first, and a run longer than the
+            // win length still wins — so practice offers no switch live play
+            // does not have.
             controller.itemEnabled = GUILayout.Toggle(controller.itemEnabled, "Items enabled");
             controller.requireScarecrowAttached = GUILayout.Toggle(controller.requireScarecrowAttached, "Shoot only when paper attached");
 
             GUILayout.Space(8f);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Gomoku", buttonStyle))
+            for (int i = 0; i < ModeRules.Playable.Length; i++)
             {
-                controller.SetMode(GameMode.Gomoku);
-            }
-
-            if (GUILayout.Button("TicTacToe", buttonStyle))
-            {
-                controller.SetMode(GameMode.TicTacToe);
+                ModeRules rules = ModeRules.For(ModeRules.Playable[i]);
+                if (GUILayout.Button(rules.DisplayName, buttonStyle))
+                {
+                    controller.SetMode(rules.Mode);
+                }
             }
             GUILayout.EndHorizontal();
 
@@ -87,6 +108,127 @@ namespace NHN.InGame
             }
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
+        }
+
+        /// <summary>
+        /// The simultaneous-play HUD.
+        ///
+        /// Deliberately has no "current player" and no TURN marker: every player
+        /// shoots throughout the wave, so all four ammo counts are live at once
+        /// and the only per-player state worth showing is whether an item has
+        /// taken someone out of the pass.
+        /// </summary>
+        private void DrawNetworkHud()
+        {
+            InstanceClient client = networkController.Client;
+            if (client == null)
+            {
+                return;
+            }
+
+            List<ServerRoomMember> players = client.Setup.Players;
+            int playerCount = players != null ? players.Count : 0;
+
+            Texture2D texture = GetHudPanelTexture();
+            float width = Mathf.Min(Mathf.Max(240f, maxPanelWidth), Mathf.Max(240f, Screen.width - horizontalPadding));
+            float minHeight = Mathf.Min(panelHeightClamp.x, panelHeightClamp.y);
+            float maxHeight = Mathf.Max(panelHeightClamp.x, panelHeightClamp.y);
+            float height = Mathf.Clamp(width * Mathf.Max(0.05f, heightFromWidth), minHeight, maxHeight);
+            Rect rect = new Rect((Screen.width - width) * 0.5f, Screen.height - height - bottomOffset, width, height);
+
+            if (texture != null)
+            {
+                GUI.DrawTexture(rect, texture, ScaleMode.StretchToFill, true);
+            }
+            else
+            {
+                GUI.Box(rect, GUIContent.none);
+            }
+
+            float slotGap = rect.width * slotGapNormalized;
+            float sidePadding = rect.width * slotSidePaddingNormalized;
+            float slotWidth = (rect.width - sidePadding * 2f - slotGap * 3f) / 4f;
+            float slotHeight = rect.height * slotHeightNormalized;
+            float slotY = rect.y + rect.height * slotTopNormalized;
+
+            for (int index = 0; index < 4; index++)
+            {
+                Rect slotRect = new Rect(rect.x + sidePadding + index * (slotWidth + slotGap), slotY, slotWidth, slotHeight);
+                if (index >= playerCount)
+                {
+                    DrawEmptySlot(slotRect);
+                    continue;
+                }
+
+                DrawNetworkSlot(slotRect, client, players[index]);
+            }
+
+            GUILayout.BeginArea(new Rect(16f, 16f, 340f, 190f), GUIContent.none, panelStyle);
+            GUILayout.Label("네트워크 대전", titleStyle);
+            GUILayout.Label(string.Format("모드: {0}", ServerProtocolText.ToDisplay(client.Setup.Mode)));
+            GUILayout.Label(string.Format("라운드: {0}/{1}", networkController.RoundNumber, networkController.RoundCount));
+            GUILayout.Label(client.WaveActive
+                ? string.Format("웨이브 {0} 진행 중", client.Wave.WaveIndex + 1)
+                : "웨이브 대기");
+            GUILayout.Label(string.Format("내 탄약: {0}", DescribeAmmo(client, client.Slot)));
+            GUILayout.Label("상태: " + networkController.StatusMessage);
+            GUILayout.EndArea();
+        }
+
+        private void DrawNetworkSlot(Rect rect, InstanceClient client, ServerRoomMember member)
+        {
+            Color previousColor = GUI.color;
+            Color slotColor = networkController.GetSlotColor(member.Slot);
+            ServerStatusFlags flags = client.GetStatus(member.Slot);
+            bool stunned = (flags & ServerStatusFlags.Stunned) != 0;
+            bool blinded = (flags & ServerStatusFlags.Blinded) != 0;
+            bool isMe = member.Slot == client.Slot;
+
+            if (isMe)
+            {
+                GUI.color = new Color(slotColor.r, slotColor.g, slotColor.b, 0.32f);
+                GUI.DrawTexture(rect, Texture2D.whiteTexture);
+                GUI.color = previousColor;
+            }
+
+            float insetX = Mathf.Max(0f, slotTextPadding.x);
+            float insetY = Mathf.Max(0f, slotTextPadding.y);
+            Rect nameRect = new Rect(rect.x + insetX, rect.y + insetY, rect.width - insetX * 2f, rect.height * 0.34f);
+            Rect ammoRect = new Rect(rect.x + insetX, rect.y + rect.height * 0.42f, rect.width - insetX * 2f, rect.height * 0.32f);
+            Rect stateRect = new Rect(rect.x + insetX, rect.y + rect.height * 0.72f, rect.width - insetX * 2f, rect.height * 0.22f);
+
+            GUI.Label(nameRect, string.Format("{0}{1}", member.Nickname, isMe ? "  (나)" : string.Empty), hudNameStyle);
+            GUI.Label(ammoRect, DescribeAmmo(client, member.Slot), hudAmmoStyle);
+
+            string state = stunned ? "STUNNED" : blinded ? "BLIND" : "READY";
+            GUI.color = stunned ? new Color(1f, 0.35f, 0.25f, 1f)
+                : blinded ? new Color(0.55f, 0.6f, 1f, 1f)
+                : slotColor;
+            GUI.Label(stateRect, state, hudStateStyle);
+            GUI.color = previousColor;
+        }
+
+        private void DrawEmptySlot(Rect rect)
+        {
+            Color previousColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.26f);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.color = previousColor;
+
+            float insetX = Mathf.Max(0f, slotTextPadding.x);
+            Rect nameRect = new Rect(rect.x + insetX, rect.y + Mathf.Max(0f, slotTextPadding.y), rect.width - insetX * 2f, rect.height * 0.34f);
+            GUI.Label(nameRect, "EMPTY", hudNameStyle);
+        }
+
+        private static string DescribeAmmo(InstanceClient client, byte slot)
+        {
+            byte perWave = client.Setup.Config.AmmoPerWave;
+            if (perWave == GameField.Unlimited)
+            {
+                return "∞";
+            }
+
+            return string.Format("{0}/{1}", client.GetAmmo(slot), perWave);
         }
 
         private void EnsureStyles()
