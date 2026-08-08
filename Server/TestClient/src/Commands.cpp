@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -223,16 +224,59 @@ void ClientApp::CommandRoom(const std::vector<std::string>& args, const std::str
 
     if (subcommand == "quick") {
         if (args.size() < 3) {
-            Console::Error("usage: room quick <duo|quad|2|4>");
+            Console::Error("usage: room quick <tictactoe|gomoku9|gomoku15>");
             return;
         }
         C_QuickMatch quick;
         quick.mode = ParseGameMode(args[2]);
         if (quick.mode == GameMode::None) {
-            Console::Error("unknown room type '{}'", args[2]);
+            Console::Error("unknown game mode '{}'", args[2]);
             return;
         }
+        // No room is created: this joins a queue and the game starts by itself
+        // once enough players are waiting.
         SendToMatch(quick);
+        return;
+    }
+
+    if (subcommand == "bot") {
+        // room bot add [1-5] | room bot level <sessionId> <1-5> | room bot remove <sessionId>
+        if (args.size() < 3) {
+            Console::Error("usage: room bot add [1-5] | room bot level <id> <1-5> | "
+                           "room bot remove <id>");
+            return;
+        }
+
+        if (args[2] == "add") {
+            C_RoomAddBot add;
+            add.difficulty = args.size() > 3
+                                 ? static_cast<uint8>(std::strtoul(args[3].c_str(), nullptr, 10))
+                                 : kDefaultBotDifficulty;
+            SendToMatch(add);
+            return;
+        }
+        if (args[2] == "remove" && args.size() > 3) {
+            C_RoomRemoveBot remove;
+            remove.sessionId = std::strtoull(args[3].c_str(), nullptr, 10);
+            SendToMatch(remove);
+            return;
+        }
+        if (args[2] == "level" && args.size() > 4) {
+            C_RoomSetBotDifficulty level;
+            level.sessionId = std::strtoull(args[3].c_str(), nullptr, 10);
+            level.difficulty = static_cast<uint8>(std::strtoul(args[4].c_str(), nullptr, 10));
+            SendToMatch(level);
+            return;
+        }
+
+        Console::Error("usage: room bot add [1-5] | room bot level <id> <1-5> | "
+                       "room bot remove <id>");
+        return;
+    }
+
+    if (subcommand == "cancel") {
+        C_QuickMatchCancel cancel;
+        SendToMatch(cancel);
         return;
     }
 

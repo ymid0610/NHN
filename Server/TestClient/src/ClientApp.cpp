@@ -350,6 +350,35 @@ void ClientApp::RegisterMatchHandlers() {
         }
     });
 
+    _matchDispatcher.On<S_RoomBotChanged>(
+        [](const SessionRef&, const S_RoomBotChanged& packet) {
+            if (packet.result != ResultCode::Ok) {
+                Console::Error("bot change refused: {}", ToString(packet.result));
+                return;
+            }
+            Console::Event("{} (slot {}) at difficulty {}", packet.bot.nickname, packet.bot.slot,
+                           packet.bot.botDifficulty);
+        });
+
+    _matchDispatcher.On<S_QuickMatchQueued>(
+        [](const SessionRef&, const S_QuickMatchQueued& packet) {
+            if (packet.result != ResultCode::Ok) {
+                Console::Error("quick match refused: {}", ToString(packet.result));
+                return;
+            }
+            Console::Event("quick match {}: {}/{} waiting (starts at {})", ToString(packet.mode),
+                           packet.waiting, packet.capacity, packet.needed);
+        });
+
+    _matchDispatcher.On<S_QuickMatchCancelled>(
+        [](const SessionRef&, const S_QuickMatchCancelled& packet) {
+            if (packet.result == ResultCode::Ok) {
+                Console::Event("quick match cancelled");
+            } else {
+                Console::Error("nothing to cancel: {}", ToString(packet.result));
+            }
+        });
+
     _matchDispatcher.On<S_RoomMemberJoined>(
         [this](const SessionRef&, const S_RoomMemberJoined& packet) {
             {
