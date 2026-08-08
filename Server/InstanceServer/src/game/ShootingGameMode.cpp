@@ -31,7 +31,8 @@ ShootingGameMode::ShootingGameMode(GameMode mode, MatchConfig config, uint32 tic
       _config(config),
       _modeDef(FindGameMode(mode)),
       _tickIntervalMs(tickIntervalMs == 0 ? 20 : tickIntervalMs),
-      _rng(static_cast<uint64>(NowUnixMs()) * 0x9E3779B97F4A7C15ull) {}
+      _rng(static_cast<uint64>(NowUnixMs()) * 0x9E3779B97F4A7C15ull),
+      _botRng(static_cast<uint64>(NowUnixMs()) * 0xD1B54A32D192ED03ull + 1) {}
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -50,6 +51,7 @@ void ShootingGameMode::OnStart(Instance& instance) {
         player.sessionId = member.sessionId;
         player.slot = member.slot;
         player.present = member.connected;
+        player.botDifficulty = member.botDifficulty;
         _players.push_back(player);
     }
 
@@ -67,6 +69,9 @@ void ShootingGameMode::OnStart(Instance& instance) {
         info.sessionId = member.sessionId;
         info.nickname = member.nickname;
         info.slot = member.slot;
+        // Carried through so the in-game scoreboard can label a bot and show
+        // its level; without it every opponent looks like a person.
+        info.botDifficulty = member.botDifficulty;
         setup.players.push_back(std::move(info));
     }
     instance.Broadcast(MakePacket(setup));
@@ -114,6 +119,12 @@ void ShootingGameMode::BeginWave(Instance& instance) {
             BroadcastStatus(instance, player);
         }
         RefreshAmmo(instance, player);
+        if (player.IsBot()) {
+            // Spread the opening shots out; four bots firing on the same tick
+            // reads as a single volley rather than four opponents.
+            player.botNextFireTick =
+                _tick + MsToTicks(static_cast<uint32>(_botRng.Range(150, 900)));
+        }
     }
 
     const uint32 durationTicks = MsToTicks(kWaveDurationMs);
@@ -224,6 +235,8 @@ void ShootingGameMode::OnTick(Instance& instance, uint64 deltaMs) {
     switch (_phase) {
         case Phase::WaveActive: {
             _world.Step(_tick, static_cast<float>(deltaMs) / 1000.0f);
+
+            BotTick(instance);
 
             _snapshotAccumMs += static_cast<uint32>(deltaMs);
             if (_snapshotAccumMs >= kSnapshotIntervalMs) {
@@ -336,22 +349,28 @@ void ShootingGameMode::OnFire(Instance& instance, SessionId sessionId, const C_F
         tick = _tick - maxRewindTicks;
     }
 
-    player->lastShotTick = _tick;
+    FireFor(instance, *player, static_cast<float>(packet.aimX),
+            static_cast<float>(packet.aimY), tick, packet.sequence);
+}
+
+void ShootingGameMode::FireFor(Instance& instance, PlayerState& player, float x, float y,
+                               uint32 tick, uint16 sequence) {
+    player.lastShotTick = _tick;
     if (_config.ammoPerWave != kUnlimited) {
-        --player->ammo;
+        --player.ammo;
         S_AmmoChanged ammo;
-        ammo.slot = player->slot;
-        ammo.ammo = player->ammo;
+        ammo.slot = player.slot;
+        ammo.ammo = player.ammo;
         instance.Broadcast(MakePacket(ammo));
     }
 
     ShotRequest request;
-    request.shooter = sessionId;
-    request.slot = player->slot;
-    request.x = static_cast<float>(packet.aimX);
-    request.y = static_cast<float>(packet.aimY);
+    request.shooter = player.sessionId;
+    request.slot = player.slot;
+    request.x = x;
+    request.y = y;
     request.tick = tick;
-    request.sequence = packet.sequence;
+    request.sequence = sequence;
     ProcessShot(instance, request);
 }
 
@@ -522,6 +541,259 @@ void ShootingGameMode::ApplyItemEffect(Instance& instance, const ShotRequest& re
     }
 
     instance.Broadcast(MakePacket(triggered));
+}
+
+// ---------------------------------------------------------------------------
+// Bots
+//
+// A bot is a player the server aims for. Its shots go through FireFor exactly
+// as a person's do - same ammo, same rate limit, same hit resolution - so
+// difficulty can only change *where* it aims and *how often*, never what a hit
+// is worth. That is deliberate: a bot that cheated would be impossible to tune
+// against, and impossible to trust when a player loses to one.
+// ---------------------------------------------------------------------------
+
+ShootingGameMode::BotProfile ShootingGameMode::ProfileFor(uint8 difficulty) {
+    switch (std::clamp(difficulty, kMinBotDifficulty, kMaxBotDifficulty)) {
+        // Scatters across a couple of cells and never reads the board.
+        case 1:  return {85.0f, 1300, 0.00f, false};
+        case 2:  return {55.0f, 1050, 0.15f, false};
+        // From here it plays the board rather than just the paper.
+        case 3:  return {34.0f,  820, 0.45f, true};
+        case 4:  return {19.0f,  640, 0.70f, true};
+        default: return { 8.0f,  480, 0.90f, true};
+    }
+}
+
+float ShootingGameMode::BotJitter(float sigma) {
+    // Three uniforms averaged: close enough to a bell curve for aim scatter,
+    // and without the rare extreme outliers a true normal produces - a level 5
+    // bot occasionally shooting the far corner would read as a bug.
+    const float sum = _botRng.Unit() + _botRng.Unit() + _botRng.Unit() - 1.5f;
+    return sum * 2.0f * sigma;
+}
+
+int32 ShootingGameMode::ScoreItem(const PlayerState& bot, ItemKind item) const {
+    switch (item) {
+        case ItemKind::SpeedLoader:
+            // Worth everything when dry and nothing when full: the refill is an
+            // assignment, not an addition.
+            return bot.ammo == 0 ? 100 : bot.ammo <= 1 ? 60 : 5;
+        case ItemKind::Grenade:
+            return 55;  // Fragments claim several cells from one bullet.
+        case ItemKind::PaintCan:
+            return 35;  // Blinds somebody for two passes.
+        case ItemKind::FryingPan:
+            return 30;  // Might rebound onto the bot itself.
+        case ItemKind::Balloon:
+            return 15;
+        // Shooting either of these only spends a bullet.
+        case ItemKind::Tumbleweed:
+        case ItemKind::WantedPoster:
+        default:
+            return -1;
+    }
+}
+
+namespace {
+
+/// Consecutive cells owned by @p slot walking away from (x, y).
+int32 RunFrom(const Board& board, int32 x, int32 y, int32 dx, int32 dy, uint8 slot) {
+    int32 count = 0;
+    for (;;) {
+        x += dx;
+        y += dy;
+        if (x < 0 || y < 0 || x >= board.Width() || y >= board.Height()) {
+            return count;
+        }
+        if (board.OwnerAt(board.CellIndex(static_cast<uint8>(x), static_cast<uint8>(y))) != slot) {
+            return count;
+        }
+        ++count;
+    }
+}
+
+}  // namespace
+
+int32 ShootingGameMode::ScoreCell(const PlayerState& bot, int32 cellX, int32 cellY) const {
+    static constexpr int32 kAxes[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+    const int32 winLength = _modeDef != nullptr ? _modeDef->winLength : 5;
+
+    int32 bestOwn = 0;
+    int32 bestBlock = 0;
+
+    for (const auto& axis : kAxes) {
+        const int32 own = 1 + RunFrom(_board, cellX, cellY, axis[0], axis[1], bot.slot) +
+                          RunFrom(_board, cellX, cellY, -axis[0], -axis[1], bot.slot);
+        bestOwn = std::max(bestOwn, own);
+
+        for (const PlayerState& other : _players) {
+            if (other.slot == bot.slot) {
+                continue;
+            }
+            const int32 theirs = 1 + RunFrom(_board, cellX, cellY, axis[0], axis[1], other.slot) +
+                                 RunFrom(_board, cellX, cellY, -axis[0], -axis[1], other.slot);
+            bestBlock = std::max(bestBlock, theirs);
+        }
+    }
+
+    if (bestOwn >= winLength) {
+        return 1000;  // Takes the round outright.
+    }
+    if (bestBlock >= winLength) {
+        return 900;  // Somebody else takes it next shot unless this is denied.
+    }
+
+    // Otherwise build, leaning on denial slightly less than on progress.
+    return bestOwn * 8 + bestBlock * 5;
+}
+
+bool ShootingGameMode::ChooseBotTarget(const PlayerState& bot, const BotProfile& profile,
+                                       const std::vector<EntityState>& view, float& outX,
+                                       float& outY) {
+    const EntityState* sheet = nullptr;
+    for (const EntityState& entity : view) {
+        if (entity.kind == EntityKind::TargetSheet) {
+            sheet = &entity;
+            break;
+        }
+    }
+    if (sheet == nullptr || sheet->halfWidth <= 0) {
+        return false;  // Between waves, or the sheet has gone.
+    }
+
+    // Items first, for the difficulties that bother with them.
+    if (profile.itemChance > 0.0f) {
+        const EntityState* best = nullptr;
+        int32 bestScore = 0;
+        for (const EntityState& entity : view) {
+            if (entity.kind != EntityKind::Item) {
+                continue;
+            }
+            const int32 score = ScoreItem(bot, entity.item);
+            if (score > bestScore) {
+                bestScore = score;
+                best = &entity;
+            }
+        }
+
+        // A dry bot goes for a speed loader whatever its temperament; anything
+        // less urgent is a roll against the profile.
+        const bool urgent = best != nullptr && bestScore >= 100;
+        if (best != nullptr && (urgent || _botRng.Unit() < profile.itemChance)) {
+            outX = static_cast<float>(best->x);
+            outY = static_cast<float>(best->y);
+            return true;
+        }
+    }
+
+    const int32 boardW = _board.Width();
+    const int32 boardH = _board.Height();
+    if (boardW <= 0 || boardH <= 0) {
+        return false;
+    }
+
+    const float cellSize = static_cast<float>(sheet->halfWidth) * 2.0f / static_cast<float>(boardW);
+    const float left = static_cast<float>(sheet->x - sheet->halfWidth);
+    const float top = static_cast<float>(sheet->y - sheet->halfHeight);
+
+    int32 chosenX = -1;
+    int32 chosenY = -1;
+
+    if (profile.playsPositionally) {
+        int32 bestScore = -1;
+        for (int32 y = 0; y < boardH; ++y) {
+            for (int32 x = 0; x < boardW; ++x) {
+                const uint16 index =
+                    _board.CellIndex(static_cast<uint8>(x), static_cast<uint8>(y));
+                if (!_board.IsEmpty(index)) {
+                    continue;
+                }
+                // A small nudge breaks ties without changing rank, so two bots
+                // of the same level do not play an identical game.
+                const int32 score = ScoreCell(bot, x, y) * 4 + _botRng.Range(0, 3);
+                if (score > bestScore) {
+                    bestScore = score;
+                    chosenX = x;
+                    chosenY = y;
+                }
+            }
+        }
+    } else {
+        // Low difficulty does not read the board: it picks somewhere empty and
+        // hopes.
+        std::vector<uint16> empties;
+        empties.reserve(static_cast<size_t>(boardW) * static_cast<size_t>(boardH));
+        for (uint16 index = 0; index < _board.CellCount(); ++index) {
+            if (_board.IsEmpty(index)) {
+                empties.push_back(index);
+            }
+        }
+        if (!empties.empty()) {
+            const uint16 pick = empties[static_cast<size_t>(
+                _botRng.Range(0, static_cast<int32>(empties.size()) - 1))];
+            chosenX = pick % boardW;
+            chosenY = pick / boardW;
+        }
+    }
+
+    if (chosenX < 0) {
+        return false;  // Board full; the round is about to end anyway.
+    }
+
+    // Cell centre in field space. Cell (0,0) is the sheet's top-left and y grows
+    // downward, matching World::Trace.
+    outX = left + (static_cast<float>(chosenX) + 0.5f) * cellSize;
+    outY = top + (static_cast<float>(chosenY) + 0.5f) * cellSize;
+    return true;
+}
+
+void ShootingGameMode::BotTick(Instance& instance) {
+    // Built once and shared: every bot sees the frame a player would.
+    std::vector<EntityState> view;
+    bool viewBuilt = false;
+
+    for (PlayerState& player : _players) {
+        if (!player.IsBot() || !player.present || player.stunned) {
+            continue;
+        }
+        if (_tick < player.botNextFireTick) {
+            continue;
+        }
+        if (_config.ammoPerWave != kUnlimited && player.ammo == 0) {
+            continue;
+        }
+
+        if (!viewBuilt) {
+            view = _world.BuildSnapshot();
+            viewBuilt = true;
+        }
+
+        const BotProfile profile = ProfileFor(player.botDifficulty);
+        float x = 0.0f;
+        float y = 0.0f;
+        if (!ChooseBotTarget(player, profile, view, x, y)) {
+            // Nothing to shoot at - look again shortly rather than every tick.
+            player.botNextFireTick = _tick + MsToTicks(120);
+            continue;
+        }
+
+        x += BotJitter(profile.aimSigma);
+        y += BotJitter(profile.aimSigma);
+
+        // A wild miss should cost the bot its bullet exactly as it would a
+        // player's, so clamp into the field rather than skipping the shot.
+        x = std::clamp(x, 0.0f, static_cast<float>(kFieldWidth - 1));
+        y = std::clamp(y, 0.0f, static_cast<float>(kFieldHeight - 1));
+
+        player.botNextFireTick = _tick + MsToTicks(profile.fireIntervalMs);
+        FireFor(instance, player, x, y, _tick, 0);
+
+        // A completed line ends the round; the rest of the table stops here.
+        if (_phase != Phase::WaveActive) {
+            return;
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -68,6 +68,12 @@ public:
         uint8 slot = 0;
         InstanceSessionRef session;  // null until the player connects
         bool connected = false;
+        /// 0 for a person, 1..5 for a bot. A bot has no session and never
+        /// connects, so it counts as present from the moment the instance is
+        /// created — otherwise the join wait would always time out.
+        uint8 botDifficulty = 0;
+
+        bool IsBot() const { return botDifficulty != 0; }
     };
 
     enum class State : uint8 {

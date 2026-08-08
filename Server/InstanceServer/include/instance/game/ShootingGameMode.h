@@ -55,7 +55,33 @@ private:
         uint16 blindThroughWave = 0;
 
         uint32 lastShotTick = 0;
+
+        /// 0 for a person, 1..5 for a bot.
+        uint8 botDifficulty = 0;
+        /// Earliest tick this bot may fire again.
+        uint32 botNextFireTick = 0;
+
+        bool IsBot() const { return botDifficulty != 0; }
     };
+
+    /// What one difficulty step actually changes.
+    ///
+    /// Accuracy is the main dial and it is expressed in field units, so it can
+    /// be read against the cell size directly: cells are 32-64 units across, so
+    /// a sigma of 85 scatters over a couple of cells and a sigma of 8 lands
+    /// comfortably inside the one that was aimed at.
+    struct BotProfile {
+        float aimSigma = 0.0f;
+        uint32 fireIntervalMs = 0;
+        /// Probability of taking a worthwhile item instead of shooting the
+        /// board, when one is in flight.
+        float itemChance = 0.0f;
+        /// False picks any empty cell; true scores them for extending its own
+        /// line and blocking the closest opponent.
+        bool playsPositionally = false;
+    };
+
+    static BotProfile ProfileFor(uint8 difficulty);
 
     /// A trigger pull, or something a grenade or ricochet produced. Both go
     /// through one pipeline so an item can create shots without a second code
@@ -80,6 +106,29 @@ private:
     /// Runs a shot and anything it spawns, bounded so a chain cannot stall the
     /// tick.
     void ProcessShot(Instance& instance, const ShotRequest& request);
+
+    /// The shot path shared by players and bots: spends the ammo, announces it
+    /// and resolves. Everything upstream of this differs; nothing downstream
+    /// does, which is what keeps a bot honest — it cannot hit anything a player
+    /// aiming at the same point would miss.
+    void FireFor(Instance& instance, PlayerState& player, float x, float y, uint32 tick,
+                 uint16 sequence);
+
+    // -- bots ----------------------------------------------------------------
+    void BotTick(Instance& instance);
+    /// @return false when there is nothing worth shooting this instant.
+    /// Not const: choosing a target rolls the bot RNG for item preference and
+    /// tie-breaks, which is real mutation and should not be hidden behind a
+    /// mutable member.
+    bool ChooseBotTarget(const PlayerState& bot, const BotProfile& profile,
+                         const std::vector<proto::EntityState>& view, float& outX,
+                         float& outY);
+    /// How much a bot wants to shoot a given item right now.
+    int32 ScoreItem(const PlayerState& bot, proto::ItemKind item) const;
+    /// How much a bot wants a given empty cell.
+    int32 ScoreCell(const PlayerState& bot, int32 cellX, int32 cellY) const;
+    /// Gaussian-ish aim error with a standard deviation of @p sigma.
+    float BotJitter(float sigma);
     void ResolveOne(Instance& instance, const ShotRequest& request,
                     std::deque<ShotRequest>& work);
     void ApplyItemEffect(Instance& instance, const ShotRequest& request,
@@ -121,6 +170,9 @@ private:
     Board _board;
     World _world;
     Rng _rng;
+    /// Separate from _rng on purpose: bot decisions must not perturb the world
+    /// sequence, or the same round seed would stop reproducing the same wave.
+    Rng _botRng;
 
     std::vector<PlayerState> _players;
 

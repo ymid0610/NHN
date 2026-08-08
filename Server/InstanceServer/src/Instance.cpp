@@ -34,7 +34,9 @@ Instance::Instance(InstanceId id, RoomId roomId, GameMode mode, MatchConfig conf
         member.sessionId = info.sessionId;
         member.nickname = info.nickname;
         member.slot = info.slot;
-        member.connected = false;
+        member.botDifficulty = info.botDifficulty;
+        // Bots have nothing to wait for.
+        member.connected = member.IsBot();
         _members.push_back(std::move(member));
     }
 }
@@ -243,6 +245,7 @@ std::vector<RoomMemberInfo> Instance::BuildRoster() const {
         info.slot = member.slot;
         info.isHost = false;  // Host authority ends at the lobby.
         info.isReady = member.connected;
+        info.botDifficulty = member.botDifficulty;
         roster.push_back(std::move(info));
     }
     return roster;
