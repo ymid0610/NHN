@@ -28,7 +28,7 @@ bool ContainsFold(const std::string& haystack, const std::string& needle) {
 }  // namespace
 
 RoomRef RoomManager::Create(const std::string& name, GameMode mode,
-                            const std::string& password, ResultCode& outResult) {
+                            const std::string& password, ResultCode& outResult, bool listed) {
     if (!IsValidGameMode(mode)) {
         outResult = ResultCode::GameModeInvalid;
         return nullptr;
@@ -43,7 +43,7 @@ RoomRef RoomManager::Create(const std::string& name, GameMode mode,
     }
 
     const RoomId roomId = _nextRoomId.fetch_add(1);
-    RoomRef room = std::make_shared<Room>(roomId, name, mode, password);
+    RoomRef room = std::make_shared<Room>(roomId, name, mode, password, listed);
 
     {
         std::lock_guard<std::mutex> guard(_lock);
@@ -117,48 +117,6 @@ void RoomManager::Search(const C_RoomList& request, S_RoomList& out) const {
     const size_t end = std::min(begin + pageSize, matches.size());
     out.rooms.assign(matches.begin() + static_cast<ptrdiff_t>(begin),
                      matches.begin() + static_cast<ptrdiff_t>(end));
-}
-
-std::vector<RoomId> RoomManager::FindQuickMatchCandidates(GameMode mode, size_t limit) const {
-    std::vector<const RoomSummary*> matches;
-    std::vector<RoomId> result;
-
-    std::lock_guard<std::mutex> guard(_lock);
-
-    for (const auto& [roomId, summary] : _summaries) {
-        if (summary.mode != mode) {
-            continue;
-        }
-        if (summary.state != RoomState::Waiting) {
-            continue;
-        }
-        if (summary.hasPassword) {
-            continue;
-        }
-        if (summary.memberCount >= summary.capacity) {
-            continue;
-        }
-        matches.push_back(&summary);
-    }
-
-    // Fullest first, so a room one player short gets completed before an empty
-    // one is offered.
-    std::sort(matches.begin(), matches.end(),
-              [](const RoomSummary* a, const RoomSummary* b) {
-                  if (a->memberCount != b->memberCount) {
-                      return a->memberCount > b->memberCount;
-                  }
-                  return a->roomId < b->roomId;  // stable across calls
-              });
-
-    result.reserve(std::min(limit, matches.size()));
-    for (const RoomSummary* summary : matches) {
-        if (result.size() >= limit) {
-            break;
-        }
-        result.push_back(summary->roomId);
-    }
-    return result;
 }
 
 int32 RoomManager::Count() const {

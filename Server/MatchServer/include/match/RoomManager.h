@@ -20,8 +20,11 @@ namespace nhn::match {
 /// queue round-trips.
 class RoomManager {
 public:
+    /// @param listed false creates an unlisted quick-match party — see Room's
+    ///               constructor. It never enters the search index, so it
+    ///               cannot be found or joined from outside.
     RoomRef Create(const std::string& name, proto::GameMode mode, const std::string& password,
-                   proto::ResultCode& outResult);
+                   proto::ResultCode& outResult, bool listed = true);
 
     RoomRef Find(RoomId roomId) const;
     void Remove(RoomId roomId);
@@ -29,16 +32,6 @@ public:
     void UpdateSummary(RoomId roomId, const proto::RoomSummary& summary);
 
     void Search(const proto::C_RoomList& request, proto::S_RoomList& out) const;
-
-    /// Rooms a quick-match player could drop into, best first.
-    ///
-    /// Ordered fullest-first rather than emptiest-first: filling one room to
-    /// capacity starts a game, whereas spreading players evenly leaves several
-    /// rooms one player short and nobody playing.
-    ///
-    /// Locked rooms are excluded — quick match cannot supply a password — as
-    /// are rooms already in or entering a match.
-    std::vector<RoomId> FindQuickMatchCandidates(proto::GameMode mode, size_t limit) const;
 
     int32 Count() const;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -7,6 +8,7 @@
 
 #include "core/Core.h"
 #include "match/ClientSession.h"
+#include "match/MatchQueue.h"
 #include "match/PeerRegistry.h"
 #include "match/Room.h"
 #include "protocol/Dispatcher.h"
@@ -31,10 +33,11 @@ public:
         uint32 kickCooldownMs = 60'000;
         int32 maxRooms = 4096;
         int32 maxSessions = 4096;
-        /// How many existing rooms quick match will try before giving up and
-        /// creating one. Each attempt is a full round through a room's job
-        /// queue, so this bounds the work one request can cause.
-        int32 quickMatchAttempts = 5;
+        /// Once a mode's queue has the minimum to start, how long to keep
+        /// waiting for it to fill to capacity before starting anyway. Gomoku
+        /// runs 2-4, so without this two players would either wait forever for
+        /// a third or never get a four-player game.
+        uint32 quickMatchFillMs = 8'000;
         /// A peer is dropped after this long without a word. Satellites
         /// heartbeat every 2 s, so this allows several to be missed.
         uint32 peerSilenceTimeoutMs = 10'000;
@@ -61,6 +64,10 @@ public:
     void PushChannelLeave(SessionId sessionId, proto::ChannelType type, uint64 channelId);
     void PushSessionClosed(SessionId sessionId);
 
+    /// Takes a departing session out of the quick-match queue. Safe to call for
+    /// a session that was never queued.
+    void RemoveFromQuickMatch(SessionId sessionId);
+
     /// Begins a handoff for @p room. Replies arrive asynchronously on the peer
     /// link and end in Room::EnqueueHandoffReady or EnqueueHandoffFailed.
     void BeginHandoff(const RoomRef& room, const std::vector<proto::RoomMemberInfo>& members,
@@ -74,17 +81,22 @@ public:
     void StartMaintenanceTimer();
 
 private:
-    /// Drops @p session into a joinable room of @p mode, creating one if
-    /// nothing suitable exists.
-    ///
-    /// Candidates come from the search index, which lags the rooms themselves —
-    /// a room can fill up between being picked and the join running. Rather
-    /// than surfacing that race to the player as "room full", a failed attempt
-    /// moves on to the next candidate, and running out of candidates means
-    /// creating a fresh room.
-    void QuickMatchStep(const ClientSessionRef& session, proto::GameMode mode,
-                        Ref<std::vector<RoomId>> candidates, size_t index);
-    void QuickMatchCreate(const ClientSessionRef& session, proto::GameMode mode);
+    // -- quick match ---------------------------------------------------------
+    //
+    // A queue rather than a room search. The player chooses a mode and nothing
+    // else: no room to find, no settings to agree, no host to press start. When
+    // enough have gathered the server builds the party and hands it straight to
+    // an instance with the mode's default settings.
+
+    void QuickMatchJoin(const ClientSessionRef& session, proto::GameMode mode);
+    void QuickMatchCancel(const ClientSessionRef& session);
+    /// Re-sends the waiting count to everyone queued for @p mode.
+    void QuickMatchBroadcast(proto::GameMode mode, proto::ResultCode result);
+    /// @param fillWindowExpired true when called from the fill timer, which is
+    ///        what allows a start below capacity.
+    void QuickMatchTryForm(proto::GameMode mode, bool fillWindowExpired);
+    void QuickMatchForm(proto::GameMode mode);
+    void QuickMatchArmFillTimer(proto::GameMode mode);
 
     enum class HandoffPhase : uint8 {
         AwaitingCreate,  // P_InstanceCreate sent, no ack yet
@@ -131,8 +143,14 @@ private:
     std::unordered_map<InstanceId, PendingHandoff> _pendingHandoffs;
     std::set<Membership> _memberships;
     InstanceId _nextInstanceId = 1;
-    /// Only for naming auto-created rooms readably; not an identifier.
+    /// Only for naming auto-created parties readably; not an identifier.
     std::atomic<uint64> _quickMatchCounter{1};
+
+    /// Only touched on this object's job queue, like the handoff bookkeeping.
+    MatchQueue _matchQueue;
+    /// One fill timer per mode, so a second player arriving does not restart
+    /// the wait for the first.
+    std::array<bool, 4> _fillTimerArmed{};
 };
 
 }  // namespace nhn::match

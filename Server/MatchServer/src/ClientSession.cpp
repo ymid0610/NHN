@@ -45,6 +45,10 @@ void ClientSession::OnDisconnected() {
         }
     }
 
+    // A player waiting for a quick match has no room to leave, so the sweep
+    // above does not reach them.
+    GMatchServer->RemoveFromQuickMatch(sessionId);
+
     GMatchServer->PushSessionClosed(sessionId);
     GSessionManager->Unregister(sessionId);
 

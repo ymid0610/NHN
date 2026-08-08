@@ -28,12 +28,24 @@ public:
         std::string nickname;
         uint8 slot = 0;
         bool ready = false;
+        /// 0 for a person, 1..5 for a bot. A bot has no session, so every send
+        /// path must tolerate a null one — Broadcast already does.
+        uint8 botDifficulty = 0;
+
         /// Monotonic counter used to pick the next host: the longest-present
         /// member inherits it.
         uint64 joinOrder = 0;
+
+        bool IsBot() const { return botDifficulty != 0; }
     };
 
-    Room(RoomId id, std::string name, proto::GameMode type, std::string password);
+    /// @param listed false for a quick-match party. The object is still a room
+    ///               internally — it already knows how to track members, freeze
+    ///               a roster and recover from a failed handoff — but it never
+    ///               publishes a summary, so it cannot be listed, searched or
+    ///               joined by anyone the matchmaker did not put there.
+    Room(RoomId id, std::string name, proto::GameMode type, std::string password,
+         bool listed = true);
 
     /// Reports the outcome of a join attempt.
     ///
@@ -49,6 +61,19 @@ public:
     void EnqueueKick(SessionId requesterId, SessionId targetId);
     void EnqueueReady(SessionId sessionId, bool ready);
     void EnqueueStart(SessionId requesterId);
+
+    /// Starts without a host and without waiting for anyone to ready up.
+    ///
+    /// Quick match only: the players were assembled by the matchmaker rather
+    /// than gathered in a lobby, so there is nobody to press start and nothing
+    /// to agree on.
+    void EnqueueAutoStart();
+
+    /// Host-only bot management. Bots hold a slot, count towards the minimum to
+    /// start, and are always ready — there is nobody to press the button.
+    void EnqueueAddBot(SessionId requesterId, uint8 difficulty);
+    void EnqueueRemoveBot(SessionId requesterId, SessionId botSessionId);
+    void EnqueueSetBotDifficulty(SessionId requesterId, SessionId botSessionId, uint8 difficulty);
 
     /// Host-only settings change. Whatever arrives is clamped to something the
     /// mode allows and then broadcast, so a stale client cannot wedge the room
@@ -81,7 +106,19 @@ private:
     void HandleKick(SessionId requesterId, SessionId targetId);
     void HandleReady(SessionId sessionId, bool ready);
     void HandleStart(SessionId requesterId);
+    void HandleAutoStart();
+    /// Shared tail of both start paths: freeze the roster and hand off.
+    void BeginStart();
     void HandleSetConfig(SessionId requesterId, proto::MatchConfig config);
+    void HandleAddBot(SessionId requesterId, uint8 difficulty);
+    void HandleRemoveBot(SessionId requesterId, SessionId botSessionId);
+    void HandleSetBotDifficulty(SessionId requesterId, SessionId botSessionId, uint8 difficulty);
+    /// Sends a bot failure to the requester alone; success is broadcast.
+    void SendBotResult(SessionId requesterId, proto::ResultCode result,
+                       const proto::RoomMemberInfo& bot) const;
+    /// True when nobody with a connection is left. Bots must not keep a room
+    /// alive after the last person has gone.
+    bool HasHumanMembers() const;
 
     /// Builds the settings broadcast, including the item set that will really
     /// spawn under the current ammo rule.
@@ -114,6 +151,7 @@ private:
     /// protect, so this is a door code rather than a credential — but it does
     /// travel in the clear, which is noted in the design docs.
     const std::string _password;
+    const bool _listed;
 
     std::vector<Member> _members;
     SessionId _hostSessionId = kInvalidSessionId;

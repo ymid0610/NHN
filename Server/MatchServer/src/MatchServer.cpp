@@ -159,27 +159,16 @@ void MatchServer::RegisterClientHandlers() {
 
     _clientDispatcher.On<C_QuickMatch>(
         [this](const ClientSessionRef& session, const C_QuickMatch& packet) {
-            if (session->GetRoomId() != kInvalidRoomId) {
-                S_RoomJoinAck ack;
-                ack.result = ResultCode::AlreadyInRoom;
-                session->SendPacket(ack);
-                return;
-            }
-            if (!IsValidGameMode(packet.mode)) {
-                S_RoomJoinAck ack;
-                ack.result = ResultCode::GameModeInvalid;
-                session->SendPacket(ack);
-                return;
-            }
+            const GameMode mode = packet.mode;
+            PostToServer(this, [session, mode](const Ref<MatchServer>& self) {
+                self->QuickMatchJoin(session, mode);
+            });
+        });
 
-            auto candidates = std::make_shared<std::vector<RoomId>>(
-                GRoomManager->FindQuickMatchCandidates(
-                    packet.mode, static_cast<size_t>(_settings.quickMatchAttempts)));
-
-            LOG_DEBUG("quick match: session {} wants {}, {} candidate(s)",
-                      session->GetSessionId(), ToString(packet.mode), candidates->size());
-
-            QuickMatchStep(session, packet.mode, candidates, 0);
+    _clientDispatcher.On<C_QuickMatchCancel>(
+        [this](const ClientSessionRef& session, const C_QuickMatchCancel&) {
+            PostToServer(this,
+                         [session](const Ref<MatchServer>& self) { self->QuickMatchCancel(session); });
         });
 
     _clientDispatcher.On<C_RoomLeave>([](const ClientSessionRef& session, const C_RoomLeave&) {
@@ -228,6 +217,34 @@ void MatchServer::RegisterClientHandlers() {
             room->EnqueueSetConfig(session->GetSessionId(), packet.config);
         });
 
+    _clientDispatcher.On<C_RoomAddBot>(
+        [](const ClientSessionRef& session, const C_RoomAddBot& packet) {
+            if (RoomRef room = RequireRoom(session)) {
+                room->EnqueueAddBot(session->GetSessionId(), packet.difficulty);
+            } else {
+                session->SendError(ResultCode::NotInRoom);
+            }
+        });
+
+    _clientDispatcher.On<C_RoomRemoveBot>(
+        [](const ClientSessionRef& session, const C_RoomRemoveBot& packet) {
+            if (RoomRef room = RequireRoom(session)) {
+                room->EnqueueRemoveBot(session->GetSessionId(), packet.sessionId);
+            } else {
+                session->SendError(ResultCode::NotInRoom);
+            }
+        });
+
+    _clientDispatcher.On<C_RoomSetBotDifficulty>(
+        [](const ClientSessionRef& session, const C_RoomSetBotDifficulty& packet) {
+            if (RoomRef room = RequireRoom(session)) {
+                room->EnqueueSetBotDifficulty(session->GetSessionId(), packet.sessionId,
+                                              packet.difficulty);
+            } else {
+                session->SendError(ResultCode::NotInRoom);
+            }
+        });
+
     _clientDispatcher.On<C_RoomStart>([](const ClientSessionRef& session, const C_RoomStart&) {
         RoomRef room = RequireRoom(session);
         if (room == nullptr) {
@@ -244,59 +261,178 @@ void MatchServer::RegisterClientHandlers() {
 // Quick match
 // ---------------------------------------------------------------------------
 
-void MatchServer::QuickMatchStep(const ClientSessionRef& session, GameMode mode,
-                                 Ref<std::vector<RoomId>> candidates, size_t index) {
-    // A player who disconnected or joined a room by hand while this was in
-    // flight should not be dragged into one.
-    if (!session->IsConnected() || session->GetRoomId() != kInvalidRoomId) {
+void MatchServer::QuickMatchJoin(const ClientSessionRef& session, GameMode mode) {
+    auto refuse = [&session, mode](ResultCode result) {
+        S_QuickMatchQueued ack;
+        ack.result = result;
+        ack.mode = mode;
+        session->SendPacket(ack);
+    };
+
+    if (!session->IsConnected()) {
+        return;
+    }
+    if (session->GetRoomId() != kInvalidRoomId) {
+        refuse(ResultCode::AlreadyInRoom);
+        return;
+    }
+    const GameModeDef* info = FindGameMode(mode);
+    if (info == nullptr) {
+        refuse(ResultCode::GameModeInvalid);
         return;
     }
 
-    if (index >= candidates->size()) {
-        QuickMatchCreate(session, mode);
+    // Re-queueing is how a player changes their mind about the mode, so drop
+    // any earlier entry rather than refusing.
+    if (const GameMode previous = _matchQueue.Remove(session->GetSessionId());
+        previous != GameMode::None && previous != mode) {
+        QuickMatchBroadcast(previous, ResultCode::Ok);
+    }
+
+    if (!_matchQueue.Add(mode, session)) {
+        refuse(ResultCode::InternalError);
         return;
     }
 
-    const RoomId roomId = (*candidates)[index];
-    RoomRef room = GRoomManager->Find(roomId);
-    if (room == nullptr) {
-        // Closed since the index was read.
-        QuickMatchStep(session, mode, candidates, index + 1);
-        return;
-    }
+    LOG_INFO("quick match: session {} queued for {} ({} waiting)", session->GetSessionId(),
+             ToString(mode), _matchQueue.Count(mode));
 
-    Ref<MatchServer> self = std::static_pointer_cast<MatchServer>(shared_from_this());
-    room->EnqueueJoin(session, "", [self, session, mode, candidates, index](ResultCode result) {
-        if (result == ResultCode::Ok) {
-            return;  // The room already sent the join ack with the roster.
+    QuickMatchBroadcast(mode, ResultCode::Ok);
+    QuickMatchTryForm(mode, false);
+}
+
+void MatchServer::QuickMatchCancel(const ClientSessionRef& session) {
+    const GameMode mode = _matchQueue.Remove(session->GetSessionId());
+
+    S_QuickMatchCancelled ack;
+    // NotInRoom also covers losing the race with a match that just formed, in
+    // which case S_GameStarting is already on its way.
+    ack.result = mode == GameMode::None ? ResultCode::NotInRoom : ResultCode::Ok;
+    session->SendPacket(ack);
+
+    if (mode != GameMode::None) {
+        LOG_INFO("quick match: session {} left the {} queue", session->GetSessionId(),
+                 ToString(mode));
+        QuickMatchBroadcast(mode, ResultCode::Ok);
+    }
+}
+
+void MatchServer::RemoveFromQuickMatch(SessionId sessionId) {
+    PostToServer(this, [sessionId](const Ref<MatchServer>& self) {
+        if (const GameMode mode = self->_matchQueue.Remove(sessionId); mode != GameMode::None) {
+            self->QuickMatchBroadcast(mode, ResultCode::Ok);
         }
-        // Full, started, or the player is on that room's kick cooldown — all
-        // ordinary outcomes for an automatic match. Try the next one.
-        self->QuickMatchStep(session, mode, candidates, index + 1);
     });
 }
 
-void MatchServer::QuickMatchCreate(const ClientSessionRef& session, GameMode mode) {
-    const std::string name =
-        std::format("{} #{}", ToString(mode), _quickMatchCounter.fetch_add(1));
-
-    ResultCode result = ResultCode::Ok;
-    RoomRef room = GRoomManager->Create(name, mode, "", result);
-    if (room == nullptr) {
-        S_RoomJoinAck ack;
-        ack.result = result;
-        session->SendPacket(ack);
-        LOG_WARN("quick match: cannot create a room for session {}: {}", session->GetSessionId(),
-                 ToString(result));
+void MatchServer::QuickMatchBroadcast(GameMode mode, ResultCode result) {
+    const GameModeDef* info = FindGameMode(mode);
+    if (info == nullptr) {
         return;
     }
 
-    LOG_INFO("quick match: session {} opened room {} '{}'", session->GetSessionId(), room->GetId(),
-             name);
+    S_QuickMatchQueued packet;
+    packet.result = result;
+    packet.mode = mode;
+    packet.waiting = static_cast<uint8>(_matchQueue.Count(mode));
+    packet.needed = info->minimumToStart;
+    packet.capacity = info->capacity;
 
-    // No callback: this room is brand new and empty, so a failure here is a
-    // real error the player should see rather than something to retry.
-    room->EnqueueJoin(session, "");
+    SendBufferRef buffer = MakePacket(packet);
+    for (const MatchQueue::Waiting& waiting : _matchQueue.Entries(mode)) {
+        if (waiting.session != nullptr) {
+            waiting.session->Send(buffer);
+        }
+    }
+}
+
+void MatchServer::QuickMatchTryForm(GameMode mode, bool fillWindowExpired) {
+    const GameModeDef* info = FindGameMode(mode);
+    if (info == nullptr) {
+        return;
+    }
+
+    _matchQueue.PruneDisconnected(mode);
+    const size_t waiting = _matchQueue.Count(mode);
+
+    if (waiting >= info->capacity) {
+        QuickMatchForm(mode);
+        return;
+    }
+    if (waiting < info->minimumToStart) {
+        return;
+    }
+
+    // Enough to play, but there is room for more. Hold briefly so a four-player
+    // mode is not decided by who happened to arrive first.
+    if (fillWindowExpired) {
+        QuickMatchForm(mode);
+        return;
+    }
+    QuickMatchArmFillTimer(mode);
+}
+
+void MatchServer::QuickMatchArmFillTimer(GameMode mode) {
+    const auto index = static_cast<size_t>(mode);
+    if (index >= _fillTimerArmed.size() || _fillTimerArmed[index]) {
+        return;
+    }
+    _fillTimerArmed[index] = true;
+
+    Ref<MatchServer> self = std::static_pointer_cast<MatchServer>(shared_from_this());
+    DoTimer(_settings.quickMatchFillMs, [self, mode, index]() {
+        self->_fillTimerArmed[index] = false;
+        self->QuickMatchTryForm(mode, true);
+    });
+}
+
+void MatchServer::QuickMatchForm(GameMode mode) {
+    const GameModeDef* info = FindGameMode(mode);
+    if (info == nullptr) {
+        return;
+    }
+
+    std::vector<MatchQueue::Waiting> party = _matchQueue.Take(mode, info->capacity);
+    if (party.size() < info->minimumToStart) {
+        // Pruned below the minimum between the check and here. Put them back
+        // rather than dropping them out of matchmaking silently.
+        for (const MatchQueue::Waiting& waiting : party) {
+            _matchQueue.Add(mode, waiting.session);
+        }
+        return;
+    }
+
+    const std::string name =
+        std::format("{} quick #{}", ToString(mode), _quickMatchCounter.fetch_add(1));
+
+    ResultCode result = ResultCode::Ok;
+    // Unlisted: this is a party the matchmaker assembled, not a place anyone
+    // can find or join. It is a Room only because a Room already knows how to
+    // hold a roster and recover from a failed handoff.
+    RoomRef room = GRoomManager->Create(name, mode, "", result, /*listed=*/false);
+    if (room == nullptr) {
+        LOG_WARN("quick match: cannot create a party for {}: {}", ToString(mode),
+                 ToString(result));
+        for (const MatchQueue::Waiting& waiting : party) {
+            if (waiting.session != nullptr) {
+                S_QuickMatchQueued ack;
+                ack.result = result;
+                ack.mode = mode;
+                waiting.session->SendPacket(ack);
+            }
+        }
+        return;
+    }
+
+    for (const MatchQueue::Waiting& waiting : party) {
+        room->EnqueueJoin(waiting.session, "");
+    }
+    // The room runs its jobs in order, so every join above has completed by the
+    // time this one does.
+    room->EnqueueAutoStart();
+
+    LOG_INFO("quick match: {} party {} formed with {} players", ToString(mode), room->GetId(),
+             party.size());
 }
 
 // ---------------------------------------------------------------------------

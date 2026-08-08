@@ -1,6 +1,8 @@
 #include "match/Room.h"
 
 #include <algorithm>
+#include <atomic>
+#include <format>
 
 #include "match/MatchGlobal.h"
 #include "match/MatchServer.h"
@@ -12,6 +14,11 @@ using namespace proto;
 
 namespace {
 
+SessionId NextBotSessionId() {
+    static std::atomic<uint64> counter{1};
+    return proto::kBotSessionBase + counter.fetch_add(1);
+}
+
 /// Captures a strong reference to the room so a job can never outlive it.
 template <class Fn>
 void PostToRoom(Room* room, Fn&& body) {
@@ -21,14 +28,18 @@ void PostToRoom(Room* room, Fn&& body) {
 
 }  // namespace
 
-Room::Room(RoomId id, std::string name, GameMode type, std::string password)
+Room::Room(RoomId id, std::string name, GameMode type, std::string password, bool listed)
     : _id(id),
       _name(std::move(name)),
       _mode(type),
       _capacity(ModeCapacity(type)),
-      _password(std::move(password)) {
-    // Defaults have to be legal for this mode before anyone touches them —
-    // ammo and wave-cap choices differ per mode.
+      _password(std::move(password)),
+      _listed(listed),
+      // The same settings quick match uses, so a room the host never touches
+      // plays exactly like an automatic one.
+      _config(DefaultMatchConfig(type)) {
+    // Belt and braces: the table is validated at source, but a room must never
+    // hold settings this mode cannot run.
     ClampMatchConfig(_mode, _config);
 }
 
@@ -63,6 +74,29 @@ void Room::EnqueueReady(SessionId sessionId, bool ready) {
 
 void Room::EnqueueStart(SessionId requesterId) {
     PostToRoom(this, [requesterId](const RoomRef& self) { self->HandleStart(requesterId); });
+}
+
+void Room::EnqueueAddBot(SessionId requesterId, uint8 difficulty) {
+    PostToRoom(this, [requesterId, difficulty](const RoomRef& self) {
+        self->HandleAddBot(requesterId, difficulty);
+    });
+}
+
+void Room::EnqueueRemoveBot(SessionId requesterId, SessionId botSessionId) {
+    PostToRoom(this, [requesterId, botSessionId](const RoomRef& self) {
+        self->HandleRemoveBot(requesterId, botSessionId);
+    });
+}
+
+void Room::EnqueueSetBotDifficulty(SessionId requesterId, SessionId botSessionId,
+                                   uint8 difficulty) {
+    PostToRoom(this, [requesterId, botSessionId, difficulty](const RoomRef& self) {
+        self->HandleSetBotDifficulty(requesterId, botSessionId, difficulty);
+    });
+}
+
+void Room::EnqueueAutoStart() {
+    PostToRoom(this, [](const RoomRef& self) { self->HandleAutoStart(); });
 }
 
 void Room::EnqueueSetConfig(SessionId requesterId, MatchConfig config) {
@@ -190,8 +224,10 @@ void Room::HandleLeave(SessionId sessionId, LeaveReason reason) {
     LOG_INFO("room {} '{}': {} left ({}) — {} remain", _id, _name, nickname, ToString(reason),
              _members.size());
 
-    if (_members.empty()) {
-        CloseRoom("last member left");
+    if (!HasHumanMembers()) {
+        // Bots alone are not a room. Without this the last person leaving would
+        // strand a lobby full of bots that nobody can see or close.
+        CloseRoom(_members.empty() ? "last member left" : "last player left");
         return;
     }
 
@@ -331,7 +367,27 @@ void Room::HandleStart(SessionId requesterId) {
     }
 
     reply(ResultCode::Ok);
+    BeginStart();
+}
 
+void Room::HandleAutoStart() {
+    if (_state != RoomState::Waiting) {
+        return;
+    }
+
+    const GameModeDef* info = FindGameMode(_mode);
+    if (info == nullptr || static_cast<uint8>(_members.size()) < info->minimumToStart) {
+        // Somebody dropped between being matched and this job running. Closing
+        // is better than stalling: everyone still here is told, and can queue
+        // again immediately.
+        CloseRoom("not enough players to start");
+        return;
+    }
+
+    BeginStart();
+}
+
+void Room::BeginStart() {
     // Freeze the roster: no joins or leaves are accepted while Starting, so the
     // member list handed to the instance server is the one that will connect.
     SetState(RoomState::Starting);
@@ -342,10 +398,132 @@ void Room::HandleStart(SessionId requesterId) {
         members.push_back(BuildMemberInfo(member));
     }
 
-    LOG_INFO("room {} '{}': starting with {} players", _id, _name, members.size());
+    LOG_INFO("{} {} '{}': starting with {} players", _listed ? "room" : "quick match party", _id,
+             _name, members.size());
     GMatchServer->BeginHandoff(std::static_pointer_cast<Room>(shared_from_this()), members,
                                _config);
     PublishSummary();
+}
+
+void Room::HandleAddBot(SessionId requesterId, uint8 difficulty) {
+    RoomMemberInfo empty;
+
+    if (_hostSessionId != requesterId) {
+        SendBotResult(requesterId, ResultCode::NotHost, empty);
+        return;
+    }
+    if (_state != RoomState::Waiting) {
+        SendBotResult(requesterId, ResultCode::RoomNotWaiting, empty);
+        return;
+    }
+    if (static_cast<uint8>(_members.size()) >= _capacity) {
+        SendBotResult(requesterId, ResultCode::RoomFull, empty);
+        return;
+    }
+
+    Member bot;
+    bot.session = nullptr;  // Nothing to send to; Broadcast skips it.
+    bot.sessionId = NextBotSessionId();
+    bot.slot = AllocateSlot();
+    bot.botDifficulty = std::clamp(difficulty, kMinBotDifficulty, kMaxBotDifficulty);
+    bot.nickname = std::format("BOT {}", bot.botDifficulty);
+    // Always ready: there is nobody to press the button, and the host would
+    // otherwise never satisfy the all-ready check.
+    bot.ready = true;
+    bot.joinOrder = _nextJoinOrder++;
+
+    _members.push_back(bot);
+
+    LOG_INFO("room {} '{}': added {} at difficulty {} ({}/{})", _id, _name, bot.nickname,
+             bot.botDifficulty, _members.size(), _capacity);
+
+    S_RoomBotChanged changed;
+    changed.result = ResultCode::Ok;
+    changed.bot = BuildMemberInfo(_members.back());
+    Broadcast(MakePacket(changed));
+
+    // Also announced as an ordinary join, so a client that only tracks the
+    // roster needs no bot-specific code to show it.
+    S_RoomMemberJoined joined;
+    joined.member = changed.bot;
+    Broadcast(MakePacket(joined));
+
+    PublishSummary();
+}
+
+void Room::HandleRemoveBot(SessionId requesterId, SessionId botSessionId) {
+    RoomMemberInfo empty;
+
+    if (_hostSessionId != requesterId) {
+        SendBotResult(requesterId, ResultCode::NotHost, empty);
+        return;
+    }
+    if (_state != RoomState::Waiting) {
+        SendBotResult(requesterId, ResultCode::RoomNotWaiting, empty);
+        return;
+    }
+
+    const Member* target = FindMember(botSessionId);
+    if (target == nullptr || !target->IsBot()) {
+        // Removing a person is what the kick packet is for; refusing here stops
+        // a malformed id from quietly ejecting a player.
+        SendBotResult(requesterId, ResultCode::TargetNotFound, empty);
+        return;
+    }
+
+    LOG_INFO("room {} '{}': removed {}", _id, _name, target->nickname);
+    HandleLeave(botSessionId, LeaveReason::Kicked);
+}
+
+void Room::HandleSetBotDifficulty(SessionId requesterId, SessionId botSessionId,
+                                  uint8 difficulty) {
+    RoomMemberInfo empty;
+
+    if (_hostSessionId != requesterId) {
+        SendBotResult(requesterId, ResultCode::NotHost, empty);
+        return;
+    }
+    if (_state != RoomState::Waiting) {
+        SendBotResult(requesterId, ResultCode::RoomNotWaiting, empty);
+        return;
+    }
+
+    Member* target = FindMember(botSessionId);
+    if (target == nullptr || !target->IsBot()) {
+        SendBotResult(requesterId, ResultCode::TargetNotFound, empty);
+        return;
+    }
+
+    // Clamped rather than rejected, so a stale UI cannot wedge the room.
+    target->botDifficulty = std::clamp(difficulty, kMinBotDifficulty, kMaxBotDifficulty);
+    target->nickname = std::format("BOT {}", target->botDifficulty);
+
+    S_RoomBotChanged changed;
+    changed.result = ResultCode::Ok;
+    changed.bot = BuildMemberInfo(*target);
+    Broadcast(MakePacket(changed));
+
+    LOG_INFO("room {} '{}': bot {} set to difficulty {}", _id, _name, botSessionId,
+             target->botDifficulty);
+}
+
+void Room::SendBotResult(SessionId requesterId, ResultCode result,
+                         const RoomMemberInfo& bot) const {
+    const auto it = std::find_if(_members.begin(), _members.end(),
+                                 [requesterId](const Member& m) { return m.sessionId == requesterId; });
+    if (it == _members.end() || it->session == nullptr) {
+        return;
+    }
+
+    S_RoomBotChanged changed;
+    changed.result = result;
+    changed.bot = bot;
+    it->session->SendPacket(changed);
+}
+
+bool Room::HasHumanMembers() const {
+    return std::any_of(_members.begin(), _members.end(),
+                       [](const Member& m) { return !m.IsBot(); });
 }
 
 void Room::HandleSetConfig(SessionId requesterId, MatchConfig config) {
@@ -493,9 +671,22 @@ void Room::PromoteNextHost() {
 
     // Longest-present member inherits. Closing the room instead would punish
     // everyone for the host's connection dropping.
-    const auto it = std::min_element(
-        _members.begin(), _members.end(),
-        [](const Member& a, const Member& b) { return a.joinOrder < b.joinOrder; });
+    //
+    // Bots are skipped: a bot host could never start the game, set the config
+    // or add another bot, so the room would be stuck.
+    auto it = _members.end();
+    for (auto candidate = _members.begin(); candidate != _members.end(); ++candidate) {
+        if (candidate->IsBot()) {
+            continue;
+        }
+        if (it == _members.end() || candidate->joinOrder < it->joinOrder) {
+            it = candidate;
+        }
+    }
+    if (it == _members.end()) {
+        CloseRoom("no player left to host");
+        return;
+    }
 
     _hostSessionId = it->sessionId;
 
@@ -564,6 +755,7 @@ RoomMemberInfo Room::BuildMemberInfo(const Member& member) const {
     info.slot = member.slot;
     info.isHost = (member.sessionId == _hostSessionId);
     info.isReady = member.ready;
+    info.botDifficulty = member.botDifficulty;
     return info;
 }
 
@@ -584,6 +776,12 @@ RoomDetail Room::BuildDetail() const {
 }
 
 void Room::PublishSummary() {
+    // A quick-match party is not a place anyone can go, so it stays out of the
+    // index entirely: no listing, no search hit, no id to join by.
+    if (!_listed) {
+        return;
+    }
+
     RoomSummary summary;
     summary.roomId = _id;
     summary.name = _name;
