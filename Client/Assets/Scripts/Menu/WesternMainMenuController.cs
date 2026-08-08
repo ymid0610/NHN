@@ -23,6 +23,7 @@ namespace NHN.Menu
             Name,
             Hub,
             CreateRoom,
+            Room,
             FindRoom,
             Matchmaking,
             Settings
@@ -39,8 +40,6 @@ namespace NHN.Menu
         public const string PrefPlayerName = "NHN.PlayerName";
         public const string PrefGameMode = "NHN.GameMode";
         public const string PrefMaxPlayers = "NHN.MaxPlayers";
-        public const string PrefBlockOccupied = "NHN.BlockOccupiedCells";
-        public const string PrefAllowOverline = "NHN.AllowOverline";
         public const string PrefItemsEnabled = "NHN.ItemsEnabled";
         public const string PrefMasterVolume = "NHN.MasterVolume";
         public const string PrefAimSensitivity = "NHN.AimSensitivity";
@@ -107,8 +106,8 @@ namespace NHN.Menu
         private readonly Color inkColor = new Color32(25, 17, 13, 255);
         private readonly Color disabledColor = new Color32(83, 72, 62, 190);
 
-        private readonly List<SegmentOption<GameMode>> createModeSegments = new List<SegmentOption<GameMode>>();
-        private readonly List<SegmentOption<GameMode>> matchmakingModeSegments = new List<SegmentOption<GameMode>>();
+        private readonly List<SegmentOption<ServerGameMode>> createModeSegments = new List<SegmentOption<ServerGameMode>>();
+        private readonly List<SegmentOption<ServerGameMode>> matchmakingModeSegments = new List<SegmentOption<ServerGameMode>>();
         private readonly List<SegmentOption<int>> playerCountSegments = new List<SegmentOption<int>>();
         private readonly List<SegmentOption<int>> resolutionSegments = new List<SegmentOption<int>>();
         private static readonly Vector2Int[] ResolutionPresets =
@@ -127,6 +126,7 @@ namespace NHN.Menu
         private GameObject nameScreen;
         private GameObject lobbyScreen;
         private GameObject hubPanel;
+        private GameObject roomPanel;
         private GameObject createRoomPanel;
         private GameObject findRoomPanel;
         private GameObject matchmakingPanel;
@@ -138,11 +138,31 @@ namespace NHN.Menu
         private Text roomCodeText;
         private Text createSummaryText;
         private Text findStatusText;
+        private InputField roomSearchInput;
+        private RectTransform roomResultRoot;
+        private Toggle hideFullToggle;
+        private Toggle hideLockedToggle;
+        /// Distinguishes a name search, whose hits are listed, from the code
+        /// lookup, which joins the exact match by itself.
+        private bool searchingByName;
         private Text matchmakingStatusText;
         private Text matchmakingButtonText;
         private Text serverRoomText;
-        private Toggle blockOccupiedToggle;
-        private Toggle allowOverlineToggle;
+        private RectTransform slotListRoot;
+        private Text roomHeaderText;
+        private RectTransform itemToggleRow;
+        private Button applyConfigButton;
+        private Button readyButton;
+        private Button startButton;
+        private readonly List<SegmentOption<int>> roundSegments = new List<SegmentOption<int>>();
+        private readonly List<SegmentOption<int>> ammoSegments = new List<SegmentOption<int>>();
+        private readonly List<SegmentOption<int>> waveSegments = new List<SegmentOption<int>>();
+        private readonly List<SegmentOption<int>> paperMinSegments = new List<SegmentOption<int>>();
+        private readonly List<SegmentOption<int>> paperMaxSegments = new List<SegmentOption<int>>();
+        private readonly Dictionary<ServerItemKind, Toggle> itemToggles =
+            new Dictionary<ServerItemKind, Toggle>();
+        private ServerMatchConfig draftConfig = ServerMatchConfig.CreateDefault(ServerGameMode.Gomoku9, true);
+        private bool suppressConfigEcho;
         private Toggle itemsToggle;
         private Toggle fullScreenToggle;
         private Toggle screenShakeToggle;
@@ -151,11 +171,9 @@ namespace NHN.Menu
         private MenuView currentView;
         private string playerName;
         private string generatedRoomCode = "미생성";
-        private GameMode selectedMode = GameMode.Gomoku;
-        private GameMode matchmakingMode = GameMode.Gomoku;
+        private ServerGameMode selectedMode = ServerGameMode.Gomoku9;
+        private ServerGameMode matchmakingMode = ServerGameMode.Gomoku9;
         private int createPlayerCount = 4;
-        private bool blockOccupiedCells = true;
-        private bool allowOverline = true;
         private bool itemsEnabled = true;
         private bool fullScreenEnabled;
         private bool screenShakeEnabled = true;
@@ -167,6 +185,8 @@ namespace NHN.Menu
         private MatchServerClient matchClient;
         private Action pendingServerAction;
         private string pendingJoinCode;
+        /// Bots still to add once the practice room comes back from the server.
+        private int pendingBotFill;
 
         private void Awake()
         {
@@ -202,11 +222,11 @@ namespace NHN.Menu
         private void LoadPreferences()
         {
             playerName = PlayerPrefs.GetString(PrefPlayerName, defaultPlayerName);
-            selectedMode = (GameMode)Mathf.Clamp(PlayerPrefs.GetInt(PrefGameMode, (int)GameMode.Gomoku), 0, 1);
+            // Sanitise rather than clamp: the modes were renumbered to the
+            // server's values, so an old preference can name one that is gone.
+            selectedMode = ModeRules.Sanitise((ServerGameMode)PlayerPrefs.GetInt(PrefGameMode, (int)ServerGameMode.Gomoku9));
             matchmakingMode = selectedMode;
-            createPlayerCount = PlayerPrefs.GetInt(PrefMaxPlayers, selectedMode == GameMode.Gomoku ? 4 : 2);
-            blockOccupiedCells = PlayerPrefs.GetInt(PrefBlockOccupied, 1) == 1;
-            allowOverline = PlayerPrefs.GetInt(PrefAllowOverline, 1) == 1;
+            createPlayerCount = PlayerPrefs.GetInt(PrefMaxPlayers, ModeRules.For(selectedMode).Capacity);
             itemsEnabled = PlayerPrefs.GetInt(PrefItemsEnabled, 1) == 1;
             masterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(PrefMasterVolume, 0.9f));
             aimSensitivity = Mathf.Clamp(PlayerPrefs.GetFloat(PrefAimSensitivity, 1f), 0.5f, 2f);
@@ -232,8 +252,6 @@ namespace NHN.Menu
             PlayerPrefs.SetString(PrefPlayerName, playerName);
             PlayerPrefs.SetInt(PrefGameMode, (int)selectedMode);
             PlayerPrefs.SetInt(PrefMaxPlayers, createPlayerCount);
-            PlayerPrefs.SetInt(PrefBlockOccupied, blockOccupiedCells ? 1 : 0);
-            PlayerPrefs.SetInt(PrefAllowOverline, allowOverline ? 1 : 0);
             PlayerPrefs.SetInt(PrefItemsEnabled, itemsEnabled ? 1 : 0);
             PlayerPrefs.SetFloat(PrefMasterVolume, masterVolume);
             PlayerPrefs.SetFloat(PrefAimSensitivity, aimSensitivity);
@@ -469,19 +487,21 @@ namespace NHN.Menu
             CreateButton(nav, "Server Start Button", "서버 게임 시작", 0f, 54f, brassColor, inkColor, StartServerRoom);
             CreateButton(nav, "Server Leave Button", "방 나가기", 0f, 54f, panelDeepColor, parchmentColor, LeaveServerRoom);
             CreateFlexibleSpacer(nav);
-            CreateButton(nav, "Practice Button", "로컬 테스트 시작", 0f, 62f, redAccentColor, Color.white, StartLocalGame);
+            CreateButton(nav, "Practice Button", "봇과 연습", 0f, 62f, redAccentColor, Color.white, StartBotPractice);
 
             RectTransform contentRoot = CreateRect("Content Root", root);
             Stretch(contentRoot, 386f, 54f, 154f, 56f);
 
             hubPanel = CreateContentPanel(contentRoot, "Hub Panel").gameObject;
             createRoomPanel = CreateContentPanel(contentRoot, "Create Room Panel").gameObject;
+            roomPanel = CreateContentPanel(contentRoot, "Room Panel").gameObject;
             findRoomPanel = CreateContentPanel(contentRoot, "Find Room Panel").gameObject;
             matchmakingPanel = CreateContentPanel(contentRoot, "Matchmaking Panel").gameObject;
             settingsPanel = CreateContentPanel(contentRoot, "Settings Panel").gameObject;
 
             BuildHubPanel(hubPanel.GetComponent<RectTransform>());
             BuildCreateRoomPanel(createRoomPanel.GetComponent<RectTransform>());
+            BuildRoomPanel(roomPanel.GetComponent<RectTransform>());
             BuildFindRoomPanel(findRoomPanel.GetComponent<RectTransform>());
             BuildMatchmakingPanel(matchmakingPanel.GetComponent<RectTransform>());
             BuildSettingsPanel(settingsPanel.GetComponent<RectTransform>());
@@ -506,6 +526,299 @@ namespace NHN.Menu
             serverRoomText = CreateLabel(rulePanel, "Server Text", "서버 방 없음", 21, parchmentMutedColor, TextAnchor.UpperLeft, 70f, FontStyle.Normal);
         }
 
+        /// <summary>
+        /// The room screen: who is in which slot, and the rules for the match.
+        ///
+        /// Laid out as capacity slots rather than a member list, so an empty
+        /// place reads as somewhere a bot can go rather than as absence. The
+        /// settings below mirror what the server actually validates - rounds,
+        /// ammo, wave cap, paper band and the item set - instead of the two
+        /// invented toggles the create screen used to offer.
+        /// </summary>
+        private void BuildRoomPanel(RectTransform panel)
+        {
+            roomHeaderText = CreateLabel(panel, "Room Header", "방", 40, parchmentColor,
+                TextAnchor.MiddleLeft, 56f, FontStyle.Bold);
+            CreateDivider(panel, "Room Divider");
+
+            RectTransform slotSection = CreateSection(panel, "Slot Section", 232f);
+            CreateLabel(slotSection, "Slot Title", "플레이어 슬롯", 26, brassColor,
+                TextAnchor.MiddleLeft, 36f, FontStyle.Bold);
+            slotListRoot = CreateSection(slotSection, "Slot List", 190f);
+
+            CreateSpacer(panel, 10f);
+            RectTransform ruleSection = CreateSection(panel, "Room Rule Section", 340f);
+            CreateLabel(ruleSection, "Room Rule Title", "세부 룰 (방장만 변경)", 26, brassColor,
+                TextAnchor.MiddleLeft, 36f, FontStyle.Bold);
+
+            BuildConfigRow(ruleSection, "라운드", roundSegments, new[] { 3, 5, 7 },
+                delegate(int v) { draftConfig.Rounds = (byte)v; });
+            // Zero is the server's "unlimited" sentinel for both of these.
+            BuildConfigRow(ruleSection, "탄약", ammoSegments, new[] { 1, 2, 3, 6, 0 },
+                delegate(int v) { draftConfig.AmmoPerWave = (byte)v; });
+            BuildConfigRow(ruleSection, "웨이브 상한", waveSegments, new[] { 10, 20, 0 },
+                delegate(int v) { draftConfig.WaveLimit = (byte)v; });
+            BuildConfigRow(ruleSection, "종이 최소", paperMinSegments, new[] { 1, 2, 3, 4, 5 },
+                delegate(int v) { draftConfig.PaperSizeMin = (byte)v; });
+            BuildConfigRow(ruleSection, "종이 최대", paperMaxSegments, new[] { 1, 2, 3, 4, 5 },
+                delegate(int v) { draftConfig.PaperSizeMax = (byte)v; });
+
+            CreateLabel(ruleSection, "Item Title", "아이템", 22, brassColor, TextAnchor.MiddleLeft,
+                30f, FontStyle.Bold);
+            itemToggleRow = CreateRow(ruleSection, "Item Row", 44f, 8f);
+            foreach (ServerItemKind kind in AllItemKinds)
+            {
+                ServerItemKind captured = kind;
+                itemToggles[kind] = CreateToggle(itemToggleRow, ItemName(kind), true,
+                    delegate(bool on) { SetDraftItem(captured, on); });
+            }
+
+            RectTransform actionRow = CreateRow(panel, "Room Action Row", 60f, 12f);
+            applyConfigButton = CreateButton(actionRow, "Apply Config", "룰 적용", 0f, 54f,
+                brassColor, inkColor, delegate { ApplyDraftConfig(); });
+            readyButton = CreateButton(actionRow, "Ready Button", "준비", 0f, 54f, greenAccentColor,
+                inkColor, delegate { ToggleReady(); });
+            startButton = CreateButton(actionRow, "Start Button", "게임 시작", 0f, 54f,
+                redAccentColor, Color.white, StartServerRoom);
+            CreateButton(actionRow, "Room Leave", "나가기", 0f, 54f, panelDeepColor, parchmentColor,
+                LeaveServerRoom);
+        }
+
+        private static readonly ServerItemKind[] AllItemKinds =
+        {
+            ServerItemKind.Tumbleweed, ServerItemKind.WantedPoster, ServerItemKind.FryingPan,
+            ServerItemKind.Balloon, ServerItemKind.PaintCan, ServerItemKind.Grenade,
+            ServerItemKind.SpeedLoader
+        };
+
+        private static string ItemName(ServerItemKind kind)
+        {
+            switch (kind)
+            {
+                case ServerItemKind.Tumbleweed: return "회전초";
+                case ServerItemKind.WantedPoster: return "현상수배지";
+                case ServerItemKind.FryingPan: return "프라이팬";
+                case ServerItemKind.Balloon: return "풍선";
+                case ServerItemKind.PaintCan: return "물감통";
+                case ServerItemKind.Grenade: return "수류탄";
+                default: return "스피드로더";
+            }
+        }
+
+        private void BuildConfigRow(RectTransform parent, string label, List<SegmentOption<int>> into,
+            int[] values, UnityEngine.Events.UnityAction<int> onPick)
+        {
+            RectTransform row = CreateRow(parent, label + " Row", 46f, 8f);
+            CreateLabel(row, label + " Label", label, 21, parchmentMutedColor, TextAnchor.MiddleLeft,
+                42f, FontStyle.Normal);
+            foreach (int value in values)
+            {
+                int captured = value;
+                // Zero means unlimited on the wire; showing the number would
+                // read as "no ammo at all".
+                string text = captured == 0 ? "무한" : captured.ToString();
+                into.Add(CreateSegment(row, text, captured, delegate
+                {
+                    onPick(captured);
+                    RefreshRoomPanel();
+                }));
+            }
+        }
+
+        private void SetDraftItem(ServerItemKind kind, bool enabled)
+        {
+            if (suppressConfigEcho)
+            {
+                return;
+            }
+
+            uint bit = 1u << (int)kind;
+            draftConfig.ItemMask = enabled ? draftConfig.ItemMask | bit : draftConfig.ItemMask & ~bit;
+        }
+
+        private void ApplyDraftConfig()
+        {
+            if (matchClient == null || !matchClient.CurrentRoom.IsValid)
+            {
+                return;
+            }
+
+            // Sent as-is. The server clamps anything this mode cannot run and
+            // echoes the result back, which is what the panel then shows.
+            matchClient.SetRoomConfig(draftConfig);
+        }
+
+        private void ToggleReady()
+        {
+            if (matchClient == null || !matchClient.CurrentRoom.IsValid)
+            {
+                return;
+            }
+
+            bool ready = false;
+            foreach (ServerRoomMember member in matchClient.CurrentRoom.Members)
+            {
+                if (member.SessionId == matchClient.SessionId)
+                {
+                    ready = member.IsReady;
+                    break;
+                }
+            }
+
+            matchClient.SetReady(!ready);
+        }
+
+        private void AddBotToRoom(byte difficulty)
+        {
+            if (matchClient == null || !matchClient.CurrentRoom.IsValid)
+            {
+                SetStatus("방에 들어간 뒤에 봇을 추가할 수 있습니다");
+                return;
+            }
+
+            matchClient.AddBot(difficulty);
+        }
+
+        private void NudgeBotDifficulty(ulong botSessionId, int delta)
+        {
+            ServerRoomDetail room = matchClient != null ? matchClient.CurrentRoom : default(ServerRoomDetail);
+            if (room.Members == null)
+            {
+                return;
+            }
+
+            foreach (ServerRoomMember member in room.Members)
+            {
+                if (member.SessionId != botSessionId)
+                {
+                    continue;
+                }
+
+                int next = Mathf.Clamp(member.BotDifficulty + delta,
+                    BotLimits.MinDifficulty, BotLimits.MaxDifficulty);
+                if (next != member.BotDifficulty)
+                {
+                    matchClient.SetBotDifficulty(botSessionId, (byte)next);
+                }
+
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Redraws the slot list and re-selects the settings that are in force.
+        ///
+        /// Rebuilt wholesale rather than patched: a room holds at most four
+        /// slots, and reconciling a list that small in place would be more code
+        /// than it saves.
+        /// </summary>
+        private void RefreshRoomPanel()
+        {
+            if (slotListRoot == null || matchClient == null)
+            {
+                return;
+            }
+
+            ServerRoomDetail room = matchClient.CurrentRoom;
+            bool isHost = room.IsValid && room.HostSessionId == matchClient.SessionId;
+            bool waiting = room.State == ServerRoomState.Waiting;
+
+            if (roomHeaderText != null)
+            {
+                roomHeaderText.text = room.IsValid
+                    ? string.Format("{0}  ·  코드 {1}  ·  {2}", ModeRules.For(room.Mode).DisplayName,
+                        room.Name, room.State)
+                    : "방 없음";
+            }
+
+            for (int i = slotListRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(slotListRoot.GetChild(i).gameObject);
+            }
+
+            if (!room.IsValid)
+            {
+                return;
+            }
+
+            List<ServerRoomMember> members = room.Members ?? new List<ServerRoomMember>();
+            for (int slot = 0; slot < room.Capacity; slot++)
+            {
+                bool filled = false;
+                foreach (ServerRoomMember member in members)
+                {
+                    if (member.Slot != slot)
+                    {
+                        continue;
+                    }
+
+                    filled = true;
+                    BuildFilledSlotRow(slot, member, isHost, waiting);
+                    break;
+                }
+
+                if (!filled)
+                {
+                    BuildEmptySlotRow(slot, isHost, waiting);
+                }
+            }
+
+            RefreshSegmentList(roundSegments, (int)draftConfig.Rounds);
+            RefreshSegmentList(ammoSegments, (int)draftConfig.AmmoPerWave);
+            RefreshSegmentList(waveSegments, (int)draftConfig.WaveLimit);
+            RefreshSegmentList(paperMinSegments, (int)draftConfig.PaperSizeMin);
+            RefreshSegmentList(paperMaxSegments, (int)draftConfig.PaperSizeMax);
+
+            foreach (KeyValuePair<ServerItemKind, Toggle> entry in itemToggles)
+            {
+                entry.Value.interactable = isHost && waiting;
+            }
+
+            if (applyConfigButton != null) applyConfigButton.interactable = isHost && waiting;
+            if (startButton != null) startButton.interactable = isHost && waiting;
+            if (readyButton != null) readyButton.interactable = waiting;
+        }
+
+        private void BuildFilledSlotRow(int slot, ServerRoomMember member, bool isHost, bool waiting)
+        {
+            RectTransform row = CreateRow(slotListRoot, "Slot " + slot, 44f, 8f);
+            string tag = member.IsHost ? " [방장]" : member.IsReady ? " [준비]" : string.Empty;
+            CreateLabel(row, "Slot Name", string.Format("{0}P  {1}{2}", slot + 1, member.Nickname, tag),
+                21, member.IsBot ? brassColor : parchmentColor, TextAnchor.MiddleLeft, 40f,
+                FontStyle.Bold);
+
+            if (!member.IsBot || !isHost || !waiting)
+            {
+                return;
+            }
+
+            ulong botId = member.SessionId;
+            CreateButton(row, "Bot Down", "◀", 46f, 40f, brassDarkColor, parchmentColor,
+                delegate { NudgeBotDifficulty(botId, -1); });
+            CreateLabel(row, "Bot Level", "난이도 " + member.BotDifficulty, 20, brassColor,
+                TextAnchor.MiddleCenter, 40f, FontStyle.Bold);
+            CreateButton(row, "Bot Up", "▶", 46f, 40f, brassDarkColor, parchmentColor,
+                delegate { NudgeBotDifficulty(botId, 1); });
+            CreateButton(row, "Bot Remove", "비우기", 76f, 40f, redAccentColor, Color.white,
+                delegate { matchClient.RemoveBot(botId); });
+        }
+
+        private void BuildEmptySlotRow(int slot, bool isHost, bool waiting)
+        {
+            RectTransform row = CreateRow(slotListRoot, "Slot " + slot, 44f, 8f);
+            CreateLabel(row, "Slot Empty", string.Format("{0}P  비어 있음", slot + 1), 21,
+                parchmentMutedColor, TextAnchor.MiddleLeft, 40f, FontStyle.Normal);
+
+            if (!isHost || !waiting)
+            {
+                return;
+            }
+
+            Button add = CreateButton(row, "Slot Add Bot", "봇 추가", 110f, 40f, greenAccentColor,
+                inkColor, delegate { AddBotToRoom(BotLimits.DefaultDifficulty); });
+            add.name = "Slot Add Bot " + slot;
+        }
+
         private void BuildCreateRoomPanel(RectTransform panel)
         {
             CreateLabel(panel, "Create Title", "방 만들기", 46, parchmentColor, TextAnchor.MiddleLeft, 68f, FontStyle.Bold);
@@ -515,8 +828,12 @@ namespace NHN.Menu
             RectTransform modeSection = CreateSection(panel, "Mode Section", 126f);
             CreateLabel(modeSection, "Mode Label", "게임 모드", 22, brassColor, TextAnchor.MiddleLeft, 32f, FontStyle.Bold);
             RectTransform modeRow = CreateRow(modeSection, "Mode Row", 58f, 12f);
-            createModeSegments.Add(CreateSegment(modeRow, "오목", GameMode.Gomoku, delegate { SetCreateMode(GameMode.Gomoku); }));
-            createModeSegments.Add(CreateSegment(modeRow, "틱택토", GameMode.TicTacToe, delegate { SetCreateMode(GameMode.TicTacToe); }));
+            foreach (ServerGameMode option in ModeRules.Playable)
+            {
+                ServerGameMode captured = option;
+                createModeSegments.Add(CreateSegment(modeRow, ModeRules.For(captured).DisplayName, captured,
+                    delegate { SetCreateMode(captured); }));
+            }
 
             RectTransform playerSection = CreateSection(panel, "Player Count Section", 124f);
             CreateLabel(playerSection, "Player Count Label", "플레이어 수", 22, brassColor, TextAnchor.MiddleLeft, 32f, FontStyle.Bold);
@@ -529,8 +846,6 @@ namespace NHN.Menu
 
             RectTransform optionSection = CreateSection(panel, "Options Section", 192f);
             CreateLabel(optionSection, "Options Label", "방 옵션", 22, brassColor, TextAnchor.MiddleLeft, 32f, FontStyle.Bold);
-            blockOccupiedToggle = CreateToggle(optionSection, "이미 쐈던 자리 재사격 불가", blockOccupiedCells, delegate(bool value) { blockOccupiedCells = value; UpdateCreateSummary(); });
-            allowOverlineToggle = CreateToggle(optionSection, "육목 허용", allowOverline, delegate(bool value) { allowOverline = value; UpdateCreateSummary(); });
             itemsToggle = CreateToggle(optionSection, "아이템 사용", itemsEnabled, delegate(bool value) { itemsEnabled = value; UpdateCreateSummary(); });
 
             RectTransform codeSection = CreateSection(panel, "Room Code Section", 168f);
@@ -538,7 +853,7 @@ namespace NHN.Menu
             createSummaryText = CreateLabel(codeSection, "Create Summary", string.Empty, 20, parchmentMutedColor, TextAnchor.MiddleLeft, 42f, FontStyle.Normal);
             RectTransform codeButtonRow = CreateRow(codeSection, "Room Code Buttons", 54f, 12f);
             CreateButton(codeButtonRow, "Generate Room Button", "방 코드 생성", 0f, 52f, brassColor, inkColor, CreateRoomCode);
-            CreateButton(codeButtonRow, "Create Practice Button", "이 설정으로 테스트", 0f, 52f, redAccentColor, Color.white, StartLocalGame);
+            CreateButton(codeButtonRow, "Create Practice Button", "이 설정으로 봇 연습", 0f, 52f, redAccentColor, Color.white, StartBotPractice);
 
             RefreshSegments();
             UpdateCreateSummary();
@@ -547,17 +862,114 @@ namespace NHN.Menu
         private void BuildFindRoomPanel(RectTransform panel)
         {
             CreateLabel(panel, "Find Title", "방 찾기", 46, parchmentColor, TextAnchor.MiddleLeft, 68f, FontStyle.Bold);
-            CreateLabel(panel, "Find Copy", "친구가 보낸 코드를 입력해서 방 정보를 확인한다.", 23, parchmentMutedColor, TextAnchor.MiddleLeft, 44f, FontStyle.Normal);
+            CreateLabel(panel, "Find Copy", "코드를 정확히 입력해 바로 들어가거나, 이름 일부로 검색해서 목록에서 고른다.", 23, parchmentMutedColor, TextAnchor.MiddleLeft, 44f, FontStyle.Normal);
             CreateDivider(panel, "Find Divider");
 
-            RectTransform codePanel = CreateSection(panel, "Find Code Section", 220f);
-            CreateLabel(codePanel, "Code Label", "초대 코드", 22, brassColor, TextAnchor.MiddleLeft, 34f, FontStyle.Bold);
+            RectTransform codePanel = CreateSection(panel, "Find Code Section", 190f);
+            CreateLabel(codePanel, "Code Label", "초대 코드로 바로 입장", 22, brassColor, TextAnchor.MiddleLeft, 34f, FontStyle.Bold);
             roomCodeInput = CreateInputField(codePanel, "Room Code Input", "예: DUST42", string.Empty, 10);
             RectTransform buttonRow = CreateRow(codePanel, "Find Button Row", 58f, 12f);
             CreateButton(buttonRow, "Check Code Button", "코드 확인", 0f, 54f, brassColor, inkColor, CheckRoomCode);
             CreateButton(buttonRow, "Join Mock Button", "방 입장", 0f, 54f, greenAccentColor, inkColor, JoinRoomMock);
 
-            findStatusText = CreateLabel(panel, "Find Status", "아직 서버가 연결되지 않았으니 클라이언트 흐름만 확인한다.", 24, parchmentMutedColor, TextAnchor.UpperLeft, 90f, FontStyle.Normal);
+            CreateSpacer(panel, 10f);
+            RectTransform searchPanel = CreateSection(panel, "Find Search Section", 300f);
+            CreateLabel(searchPanel, "Search Label", "이름으로 검색", 22, brassColor, TextAnchor.MiddleLeft, 34f, FontStyle.Bold);
+            roomSearchInput = CreateInputField(searchPanel, "Room Search Input", "이름 일부 (비우면 전체)", string.Empty, 24);
+            RectTransform searchRow = CreateRow(searchPanel, "Search Row", 54f, 12f);
+            CreateButton(searchRow, "Search Button", "검색", 0f, 50f, brassColor, inkColor, SearchRoomsByName);
+            hideFullToggle = CreateToggle(searchRow, "가득 찬 방 숨기기", true, delegate { SearchRoomsByName(); });
+            hideLockedToggle = CreateToggle(searchRow, "잠긴 방 숨기기", false, delegate { SearchRoomsByName(); });
+
+            // One row per result, each with its own join button.
+            roomResultRoot = CreateSection(searchPanel, "Room Results", 176f);
+
+            findStatusText = CreateLabel(panel, "Find Status", "검색을 눌러 방 목록을 불러온다.", 24, parchmentMutedColor, TextAnchor.UpperLeft, 60f, FontStyle.Normal);
+        }
+
+        private void SearchRoomsByName()
+        {
+            string filter = roomSearchInput != null ? roomSearchInput.text.Trim() : string.Empty;
+            searchingByName = true;
+
+            RunWhenConnected(delegate
+            {
+                findStatusText.text = string.IsNullOrEmpty(filter)
+                    ? "전체 방 검색 중"
+                    : "'" + filter + "' 검색 중";
+                matchClient.RequestRoomList(
+                    ServerGameMode.None,
+                    filter,
+                    hideFullToggle != null && hideFullToggle.isOn,
+                    hideLockedToggle != null && hideLockedToggle.isOn,
+                    0,
+                    20);
+            });
+        }
+
+        /// <summary>
+        /// Draws one row per search hit, each with its own join button.
+        ///
+        /// Separate from the code path on purpose: a code is an exact address
+        /// and joins immediately, whereas a name is a guess that can match
+        /// several rooms and has to be chosen from.
+        /// </summary>
+        private void ShowRoomResults(List<ServerRoomSummary> rooms)
+        {
+            if (roomResultRoot == null)
+            {
+                return;
+            }
+
+            for (int i = roomResultRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(roomResultRoot.GetChild(i).gameObject);
+            }
+
+            if (rooms == null || rooms.Count == 0)
+            {
+                findStatusText.text = "검색 결과 없음";
+                return;
+            }
+
+            int shown = Mathf.Min(rooms.Count, 4);
+            findStatusText.text = string.Format("{0}개 방 발견 (상위 {1}개 표시)", rooms.Count, shown);
+
+            for (int i = 0; i < shown; i++)
+            {
+                ServerRoomSummary room = rooms[i];
+                ulong roomId = room.RoomId;
+                bool locked = room.HasPassword;
+                bool full = room.MemberCount >= room.Capacity;
+
+                RectTransform row = CreateRow(roomResultRoot, "Result " + roomId, 40f, 8f);
+                CreateLabel(row, "Result Name", string.Format("{0}  {1}  {2}/{3}{4}",
+                        room.Name,
+                        ModeRules.For(room.Mode).DisplayName,
+                        room.MemberCount,
+                        room.Capacity,
+                        locked ? "  [비밀]" : string.Empty),
+                    20, parchmentColor, TextAnchor.MiddleLeft, 36f, FontStyle.Normal);
+
+                Button join = CreateButton(row, "Result Join", full ? "가득 참" : "입장", 96f, 36f,
+                    full ? panelDeepColor : greenAccentColor, full ? parchmentMutedColor : inkColor,
+                    delegate { JoinSearchResult(roomId, locked); });
+                join.interactable = !full;
+            }
+        }
+
+        private void JoinSearchResult(ulong roomId, bool locked)
+        {
+            // A locked room still needs its password, and the only field we have
+            // for one is the code box.
+            string password = locked && roomCodeInput != null ? roomCodeInput.text.Trim() : string.Empty;
+            if (locked && string.IsNullOrEmpty(password))
+            {
+                findStatusText.text = "비밀방입니다. 위 코드 칸에 비밀번호를 넣고 다시 눌러주세요.";
+                return;
+            }
+
+            RunWhenConnected(delegate { matchClient.JoinRoom(roomId, password); });
         }
 
         private void BuildMatchmakingPanel(RectTransform panel)
@@ -569,8 +981,12 @@ namespace NHN.Menu
             RectTransform modeSection = CreateSection(panel, "Match Mode Section", 126f);
             CreateLabel(modeSection, "Match Mode Label", "매칭 모드", 22, brassColor, TextAnchor.MiddleLeft, 32f, FontStyle.Bold);
             RectTransform modeRow = CreateRow(modeSection, "Match Mode Row", 58f, 12f);
-            matchmakingModeSegments.Add(CreateSegment(modeRow, "오목", GameMode.Gomoku, delegate { SetMatchmakingMode(GameMode.Gomoku); }));
-            matchmakingModeSegments.Add(CreateSegment(modeRow, "틱택토", GameMode.TicTacToe, delegate { SetMatchmakingMode(GameMode.TicTacToe); }));
+            foreach (ServerGameMode option in ModeRules.Playable)
+            {
+                ServerGameMode captured = option;
+                matchmakingModeSegments.Add(CreateSegment(modeRow, ModeRules.For(captured).DisplayName, captured,
+                    delegate { SetMatchmakingMode(captured); }));
+            }
 
             RectTransform statusSection = CreateSection(panel, "Match Status Section", 260f);
             matchmakingStatusText = CreateLabel(statusSection, "Match Status Text", "큐 대기 전", 32, parchmentColor, TextAnchor.MiddleCenter, 116f, FontStyle.Bold);
@@ -579,7 +995,7 @@ namespace NHN.Menu
             CreateLabel(statusSection, "Matchmaking Hint", "매칭 성공 이벤트는 서버 개발자가 콜백으로 이어주면 된다.", 20, parchmentMutedColor, TextAnchor.MiddleCenter, 44f, FontStyle.Normal);
 
             CreateSpacer(panel, 18f);
-            CreateButton(panel, "Match Practice Button", "로컬 테스트 시작", 0f, 58f, brassColor, inkColor, StartLocalGame);
+            CreateButton(panel, "Match Practice Button", "봇과 연습", 0f, 58f, brassColor, inkColor, StartBotPractice);
 
             RefreshSegments();
         }
@@ -629,6 +1045,7 @@ namespace NHN.Menu
 
             hubPanel.SetActive(view == MenuView.Hub);
             createRoomPanel.SetActive(view == MenuView.CreateRoom);
+            roomPanel.SetActive(view == MenuView.Room);
             findRoomPanel.SetActive(view == MenuView.FindRoom);
             matchmakingPanel.SetActive(view == MenuView.Matchmaking);
             settingsPanel.SetActive(view == MenuView.Settings);
@@ -669,7 +1086,7 @@ namespace NHN.Menu
             ConnectToMatchServer();
         }
 
-        private void SetCreateMode(GameMode mode)
+        private void SetCreateMode(ServerGameMode mode)
         {
             selectedMode = mode;
             ClampPlayerCountForMode();
@@ -678,7 +1095,7 @@ namespace NHN.Menu
             UpdateHeader();
         }
 
-        private void SetMatchmakingMode(GameMode mode)
+        private void SetMatchmakingMode(ServerGameMode mode)
         {
             matchmakingMode = mode;
             RefreshSegments();
@@ -696,7 +1113,7 @@ namespace NHN.Menu
 
         private void ClampPlayerCountForMode()
         {
-            int max = selectedMode == GameMode.Gomoku ? 4 : 2;
+            int max = ModeRules.For(selectedMode).Capacity;
             createPlayerCount = Mathf.Clamp(createPlayerCount, 1, max);
         }
 
@@ -706,7 +1123,7 @@ namespace NHN.Menu
             RefreshSegmentList(matchmakingModeSegments, matchmakingMode);
             RefreshSegmentList(resolutionSegments, selectedResolutionIndex);
 
-            int allowedMax = selectedMode == GameMode.Gomoku ? 4 : 2;
+            int allowedMax = ModeRules.For(selectedMode).Capacity;
             foreach (SegmentOption<int> option in playerCountSegments)
             {
                 bool allowed = option.Value <= allowedMax;
@@ -744,10 +1161,13 @@ namespace NHN.Menu
                 return;
             }
 
-            string reShoot = blockOccupiedCells ? "재사격 불가" : "재사격 허용";
-            string overline = allowOverline ? "육목 허용" : "정확히 오목";
+            // Re-shooting and overline are not offered: the server decides both
+            // and neither is configurable, so the summary states the board
+            // instead of options that do not exist.
+            ModeRules rules = ModeRules.For(selectedMode);
             string item = itemsEnabled ? "아이템 ON" : "아이템 OFF";
-            createSummaryText.text = string.Format("{0} | {1} | {2} | {3}P | {4}", GetModeName(selectedMode), reShoot, overline, createPlayerCount, item);
+            createSummaryText.text = string.Format("{0} | {1}x{1} {2}목 | {3}P | {4}",
+                rules.DisplayName, rules.BoardSize, rules.WinLength, createPlayerCount, item);
 
             if (roomCodeText != null)
             {
@@ -764,7 +1184,7 @@ namespace NHN.Menu
 
             RunWhenConnected(delegate
             {
-                ServerGameMode mode = ToServerMode(selectedMode);
+                ServerGameMode mode = selectedMode;
                 if (matchClient.CreateRoom(generatedRoomCode, mode, string.Empty))
                 {
                     matchClient.SetRoomConfig(ServerMatchConfig.CreateDefault(mode, itemsEnabled));
@@ -854,7 +1274,7 @@ namespace NHN.Menu
                 SetStatus(GetModeName(matchmakingMode) + " 매칭 대기 시작");
                 RunWhenConnected(delegate
                 {
-                    matchClient.QuickMatch(ToServerMode(matchmakingMode));
+                    matchClient.QuickMatch(matchmakingMode);
                 });
             }
             else
@@ -882,17 +1302,52 @@ namespace NHN.Menu
             matchmakingStatusText.text = string.Format("{0} 큐 검색 중{1}\n대기 {2:0}s", GetModeName(matchmakingMode), dots, elapsed);
         }
 
-        private void StartLocalGame()
+        /// <summary>
+        /// Practice against bots, through the real server.
+        ///
+        /// This replaces the offline hot-seat prototype as the way in. That
+        /// prototype takes turns - one mouse, one player at a time - which is
+        /// not the game: the server runs every player simultaneously through a
+        /// wave. Practising against a rule set nobody plays by taught the wrong
+        /// habits, and now that bots exist there is no reason to.
+        /// </summary>
+        private void StartBotPractice()
         {
             SavePreferences();
-            PlayerPrefs.SetInt(PrefGameMode, (int)selectedMode);
-            PlayerPrefs.SetInt(PrefMaxPlayers, createPlayerCount);
-            PlayerPrefs.SetInt(PrefBlockOccupied, blockOccupiedCells ? 1 : 0);
-            PlayerPrefs.SetInt(PrefAllowOverline, allowOverline ? 1 : 0);
-            PlayerPrefs.SetInt(PrefItemsEnabled, itemsEnabled ? 1 : 0);
-            PlayerPrefs.Save();
 
-            SceneManager.LoadScene(inGameSceneName);
+            RunWhenConnected(delegate
+            {
+                if (matchClient.CurrentRoom.IsValid)
+                {
+                    SetStatus("이미 방에 있습니다. 슬롯에서 봇을 추가하세요.");
+                    ShowView(MenuView.Room);
+                    return;
+                }
+
+                generatedRoomCode = GenerateRoomCode();
+                SetStatus("연습 방 생성 중: " + generatedRoomCode);
+                pendingBotFill = ModeRules.For(selectedMode).MinimumToStart - 1;
+                matchClient.CreateRoom(generatedRoomCode, selectedMode, string.Empty);
+            });
+        }
+
+        /// Tops the new practice room up to the minimum the mode needs, so the
+        /// host can press start immediately.
+        private void FillPracticeBots()
+        {
+            if (pendingBotFill <= 0)
+            {
+                return;
+            }
+
+            int wanted = pendingBotFill;
+            pendingBotFill = 0;
+            for (int i = 0; i < wanted; i++)
+            {
+                matchClient.AddBot(BotLimits.DefaultDifficulty);
+            }
+
+            SetStatus("봇 " + wanted + "명 추가됨. 난이도를 조정하고 시작하세요.");
         }
 
         private void StartTutorialScene()
@@ -915,16 +1370,6 @@ namespace NHN.Menu
 
         private void ApplySettingsValuesToUi()
         {
-            if (blockOccupiedToggle != null)
-            {
-                blockOccupiedToggle.isOn = blockOccupiedCells;
-            }
-
-            if (allowOverlineToggle != null)
-            {
-                allowOverlineToggle.isOn = allowOverline;
-            }
-
             if (itemsToggle != null)
             {
                 itemsToggle.isOn = itemsEnabled;
@@ -1010,6 +1455,7 @@ namespace NHN.Menu
             matchClient.StatusChanged += OnMatchStatusChanged;
             matchClient.HelloAck += OnMatchHelloAck;
             matchClient.RoomChanged += OnMatchRoomChanged;
+            matchClient.RoomConfigChanged += OnMatchConfigChanged;
             matchClient.RoomListReceived += OnMatchRoomListReceived;
             matchClient.GameStarting += OnMatchGameStarting;
         }
@@ -1087,6 +1533,44 @@ namespace NHN.Menu
             }
 
             UpdateServerRoomText();
+
+            // The room is a place, so it gets a screen. Entering one moves you
+            // there; being ejected - kicked, closed, or having left - moves you
+            // back rather than leaving a dead panel on screen.
+            if (room.IsValid && currentView != MenuView.Room)
+            {
+                draftConfig = matchClient.CurrentConfig;
+                ShowView(MenuView.Room);
+                FillPracticeBots();
+            }
+            else if (!room.IsValid && currentView == MenuView.Room)
+            {
+                ShowView(MenuView.Hub);
+            }
+        }
+
+        private void OnMatchConfigChanged(ServerMatchConfig config, uint effectiveItems)
+        {
+            // Adopt whatever the server settled on. It clamps illegal
+            // combinations, so echoing its answer back into the panel is the
+            // only way the controls can show what is really in force.
+            draftConfig = config;
+
+            foreach (KeyValuePair<ServerItemKind, Toggle> entry in itemToggles)
+            {
+                uint bit = 1u << (int)entry.Key;
+                bool on = (config.ItemMask & bit) != 0;
+                if (entry.Value.isOn != on)
+                {
+                    // Setting isOn fires the change callback, which would write
+                    // straight back into the draft we are loading.
+                    suppressConfigEcho = true;
+                    entry.Value.isOn = on;
+                    suppressConfigEcho = false;
+                }
+            }
+
+            RefreshRoomPanel();
         }
 
         private void OnMatchRoomListReceived(List<ServerRoomSummary> rooms, uint totalCount, ushort page)
@@ -1138,6 +1622,15 @@ namespace NHN.Menu
                 return;
             }
 
+            if (searchingByName)
+            {
+                // A name search offers choices, so it gets rows with join
+                // buttons rather than a paragraph of text.
+                searchingByName = false;
+                ShowRoomResults(rooms);
+                return;
+            }
+
             if (rooms.Count == 0)
             {
                 findStatusText.text = "검색 결과 없음";
@@ -1161,13 +1654,15 @@ namespace NHN.Menu
 
         private void OnMatchGameStarting(ServerGameStartingInfo info)
         {
-            PlayerPrefs.SetString("NHN.InstanceHost", info.Host);
-            PlayerPrefs.SetInt("NHN.InstancePort", info.Port);
-            PlayerPrefs.SetString("NHN.InstanceTicket", info.Ticket);
-            PlayerPrefs.SetString("NHN.InstanceId", info.InstanceId.ToString());
-            PlayerPrefs.Save();
+            SetStatus("인스턴스 접속 중: " + info.Host + ":" + info.Port);
 
-            SetStatus("인스턴스 티켓 수신: " + info.Host + ":" + info.Port);
+            // Connect here, before the scene change, rather than storing the
+            // ticket for the game scene to use. The ticket is single-use and
+            // expires in 30 seconds, and the session object carries the open
+            // connection across the load.
+            NetworkGameSession.Begin(info, playerName, matchClient != null ? matchClient.SessionId : 0UL);
+
+            SceneManager.LoadScene(inGameSceneName);
         }
 
         private void SendReadyToServer()
@@ -1207,11 +1702,6 @@ namespace NHN.Menu
             }
         }
 
-        private ServerGameMode ToServerMode(GameMode mode)
-        {
-            return mode == GameMode.TicTacToe ? ServerGameMode.TicTacToe : ServerGameMode.Gomoku15;
-        }
-
         private void UpdateServerRoomText()
         {
             if (serverRoomText == null)
@@ -1244,9 +1734,10 @@ namespace NHN.Menu
                 for (int i = 0; i < room.Members.Count; i++)
                 {
                     ServerRoomMember member = room.Members[i];
-                    builder.AppendFormat("{0}P  {1}  {2}{3}",
+                    builder.AppendFormat("{0}P  {1}  {2}{3}{4}",
                         member.Slot + 1,
                         member.Nickname,
+                        member.IsBot ? " [BOT " + member.BotDifficulty + "]" : string.Empty,
                         member.IsHost ? " [HOST]" : string.Empty,
                         member.IsReady ? " [READY]" : string.Empty);
                     if (i < room.Members.Count - 1)
@@ -1257,6 +1748,7 @@ namespace NHN.Menu
             }
 
             serverRoomText.text = builder.ToString();
+            RefreshRoomPanel();
         }
 
         private void UpdateHeader()
@@ -1295,9 +1787,9 @@ namespace NHN.Menu
             return lobbyBackdropSprite != null ? lobbyBackdropSprite : menuBackdropSprite;
         }
 
-        private string GetModeName(GameMode mode)
+        private string GetModeName(ServerGameMode mode)
         {
-            return mode == GameMode.Gomoku ? "오목" : "틱택토";
+            return ModeRules.For(mode).DisplayName;
         }
 
         private bool WasSubmitPressed()
