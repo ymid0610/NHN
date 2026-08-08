@@ -112,6 +112,27 @@ const char* ToString(LeaveReason reason);
 /// zero means the round runs until the board resolves itself.
 inline constexpr uint8 kUnlimited = 0;
 
+// ---------------------------------------------------------------------------
+// Bots
+// ---------------------------------------------------------------------------
+
+/// 1 is barely a threat, 5 rarely misses. Zero means "not a bot".
+inline constexpr uint8 kMinBotDifficulty = 1;
+inline constexpr uint8 kMaxBotDifficulty = 5;
+inline constexpr uint8 kDefaultBotDifficulty = 3;
+
+/// Bot session ids are allocated from the top of the range.
+///
+/// A bot needs an id because it occupies a room slot, a board slot and a score
+/// line exactly as a player does — but it must never be mistaken for a session
+/// anything can send to. Keeping them in their own range makes that a test
+/// rather than a convention.
+inline constexpr SessionId kBotSessionBase = 0x4000'0000'0000'0000ull;
+
+inline bool IsBotSession(SessionId sessionId) {
+    return sessionId >= kBotSessionBase;
+}
+
 /// Everything that varies between modes, in one place.
 struct GameModeDef {
     GameMode type = GameMode::None;
@@ -171,10 +192,16 @@ struct RoomMemberInfo {
     uint8 slot = 0;
     bool isHost = false;
     bool isReady = false;
+    /// 0 for a person, 1..5 for a bot. Carried on the wire rather than derived
+    /// from the id so a client can show the difficulty without knowing how ids
+    /// are allocated.
+    uint8 botDifficulty = 0;
+
+    bool IsBot() const { return botDifficulty != 0; }
 
     template <class Ar>
     void Serialize(Ar& ar) {
-        ar & sessionId & nickname & slot & isHost & isReady;
+        ar & sessionId & nickname & slot & isHost & isReady & botDifficulty;
     }
 };
 

@@ -71,6 +71,52 @@ uint32 EffectiveItemMask(uint32 requestedMask, uint8 ammoPerWave) {
     return result;
 }
 
+MatchConfig DefaultMatchConfig(GameMode mode) {
+    MatchConfig config;
+    config.rounds = 3;
+    config.itemMask = kAllItemsMask;
+
+    switch (mode) {
+        case GameMode::TicTacToe:
+            // One shot a wave, as the tutorial describes. Note the consequence:
+            // the pan and the speed loader both need two, so nine cells are
+            // played without them.
+            config.ammoPerWave = 1;
+            config.waveLimit = 10;
+            // Three cells wide, so the largest cells — otherwise the sheet is
+            // barely 120 units across a 1920 field.
+            config.paperSizeMin = 4;
+            config.paperSizeMax = 5;
+            break;
+
+        case GameMode::Gomoku9:
+            config.ammoPerWave = 6;
+            config.waveLimit = 10;
+            config.paperSizeMin = 2;
+            config.paperSizeMax = 4;
+            break;
+
+        case GameMode::Gomoku15:
+            config.ammoPerWave = 6;
+            // Deliberately higher: five in a row on 15x15 is unreachable in ten
+            // passes and every round would end scoreless.
+            config.waveLimit = 20;
+            // Fifteen cells wide, so the smallest cells — at size 4 the sheet
+            // would cover nearly half the field and be impossible to miss.
+            config.paperSizeMin = 1;
+            config.paperSizeMax = 3;
+            break;
+
+        default:
+            break;
+    }
+
+    // Runs the same validation a host's choice would, so a mistake in the table
+    // above cannot ship an illegal default.
+    ClampMatchConfig(mode, config);
+    return config;
+}
+
 bool ClampMatchConfig(GameMode mode, MatchConfig& config) {
     const GameModeDef* info = FindGameMode(mode);
     if (info == nullptr) {

@@ -39,6 +39,9 @@ enum class PacketId : uint16 {
     C_QuickMatch = 1024,
     C_RoomSetConfig = 1025,
     S_RoomConfigChanged = 1026,
+    C_QuickMatchCancel = 1027,
+    S_QuickMatchQueued = 1028,
+    S_QuickMatchCancelled = 1029,
 
     S_RoomMemberJoined = 1030,
     S_RoomMemberLeft = 1031,
@@ -48,6 +51,11 @@ enum class PacketId : uint16 {
     S_RoomStateChanged = 1035,
     S_RoomClosed = 1036,
     S_GameStarting = 1037,
+
+    C_RoomAddBot = 1040,
+    C_RoomRemoveBot = 1041,
+    C_RoomSetBotDifficulty = 1042,
+    S_RoomBotChanged = 1043,
 
     // -- client <-> chat ----------------------------------------------------
     C_ChatHello = 2000,
@@ -327,12 +335,12 @@ struct S_RoomStartAck {
     }
 };
 
-/// "Put me in a game of this mode, I do not care which room."
+/// "Put me in a game of this mode."
 ///
-/// Answered with the ordinary S_RoomJoinAck: the outcome either way is that the
-/// player is in a room, and reusing it means the client needs no extra handler.
-/// Whether an existing room was joined or a new one created is visible from the
-/// member count in that ack.
+/// Joins a matchmaking queue. There is no room and no lobby: when enough players
+/// are waiting the server starts an instance with the mode's default settings
+/// and everyone receives S_GameStarting directly. Answered immediately with
+/// S_QuickMatchQueued so the client can show progress while it waits.
 struct C_QuickMatch {
     NHN_PACKET(C_QuickMatch);
     GameMode mode = GameMode::None;
@@ -340,6 +348,105 @@ struct C_QuickMatch {
     template <class Ar>
     void Serialize(Ar& ar) {
         ar & mode;
+    }
+};
+
+/// Queue accepted, or refused with a reason.
+///
+/// Re-sent to everyone already waiting whenever the count changes, so a client
+/// can show "2/4" without polling.
+struct S_QuickMatchQueued {
+    NHN_PACKET(S_QuickMatchQueued);
+    ResultCode result = ResultCode::Ok;
+    GameMode mode = GameMode::None;
+    /// Players waiting for this mode, including the recipient.
+    uint8 waiting = 0;
+    /// Enough to start once the fill window closes.
+    uint8 needed = 0;
+    /// Starts at once on reaching this many.
+    uint8 capacity = 0;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & result & mode & waiting & needed & capacity;
+    }
+};
+
+struct C_QuickMatchCancel {
+    NHN_PACKET(C_QuickMatchCancel);
+    template <class Ar>
+    void Serialize(Ar&) {}
+};
+
+struct S_QuickMatchCancelled {
+    NHN_PACKET(S_QuickMatchCancelled);
+    /// NotInRoom when the caller was not queued — including the case where the
+    /// match formed a moment before the cancel arrived, in which case
+    /// S_GameStarting is already on its way.
+    ResultCode result = ResultCode::Ok;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & result;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// Bots
+//
+// A bot is a room member like any other: it holds a slot, appears in the
+// roster, counts towards the minimum to start and plays a board slot. It simply
+// has no connection behind it, so the server fires its shots.
+// ---------------------------------------------------------------------------
+
+/// Host-only. Fails with RoomFull when there is no slot left.
+struct C_RoomAddBot {
+    NHN_PACKET(C_RoomAddBot);
+    uint8 difficulty = kDefaultBotDifficulty;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & difficulty;
+    }
+};
+
+/// Host-only. Refuses a session id that belongs to a person — removing those is
+/// what the kick packet is for.
+struct C_RoomRemoveBot {
+    NHN_PACKET(C_RoomRemoveBot);
+    SessionId sessionId = kInvalidSessionId;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & sessionId;
+    }
+};
+
+/// Host-only. Out-of-range values are clamped into 1..5 rather than rejected.
+struct C_RoomSetBotDifficulty {
+    NHN_PACKET(C_RoomSetBotDifficulty);
+    SessionId sessionId = kInvalidSessionId;
+    uint8 difficulty = kDefaultBotDifficulty;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & sessionId & difficulty;
+    }
+};
+
+/// Broadcast after a successful add or difficulty change, and sent to the
+/// requester alone when one fails.
+///
+/// Removal rides on the ordinary S_RoomMemberLeft, since that is exactly what
+/// happened as far as the roster is concerned.
+struct S_RoomBotChanged {
+    NHN_PACKET(S_RoomBotChanged);
+    ResultCode result = ResultCode::Ok;
+    RoomMemberInfo bot;
+
+    template <class Ar>
+    void Serialize(Ar& ar) {
+        ar & result & bot;
     }
 };
 

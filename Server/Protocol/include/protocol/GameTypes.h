@@ -122,6 +122,17 @@ struct MatchConfig {
 inline constexpr uint8 kMinPaperSize = 1;
 inline constexpr uint8 kMaxPaperSize = 5;
 
+/// The settings a match uses when nobody picked any: quick match, and the
+/// starting state of a freshly created room.
+///
+/// Per-mode rather than one constant, and the paper size band is the reason.
+/// Cell size depends only on the size setting, so the sheet is as wide as
+/// cellSize * boardWidth — with one band for everything, tic-tac-toe's
+/// three-cell sheet would be a fifth the width of gomoku's fifteen-cell one.
+/// Small boards therefore get bigger cells and large boards smaller ones, which
+/// keeps the target roughly the same size on screen whatever is being played.
+MatchConfig DefaultMatchConfig(GameMode mode);
+
 /// Forces @p config into something playable for @p mode, and reports whether it
 /// had to change anything.
 ///

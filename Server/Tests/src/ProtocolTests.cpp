@@ -95,6 +95,60 @@ TEST(MatchConfig, AcceptsAValidCombinationUnchanged) {
     EXPECT_EQ(config.ammoPerWave, 6);
 }
 
+TEST(MatchConfig, EveryModeHasAPlayableDefault) {
+    // Quick match ships these without anyone reviewing them, so the table has
+    // to be legal for its own mode by construction.
+    for (const GameMode mode :
+         {GameMode::TicTacToe, GameMode::Gomoku9, GameMode::Gomoku15}) {
+        MatchConfig config = DefaultMatchConfig(mode);
+        EXPECT_TRUE(ClampMatchConfig(mode, config))
+            << "default for " << ToString(mode) << " needed clamping";
+    }
+}
+
+TEST(MatchConfig, DefaultPaperSizeKeepsTheSheetSaneOnEveryBoard) {
+    // Cell size depends only on the size setting, so the sheet is as wide as
+    // cellSize * boardWidth. Without a per-mode band, tic-tac-toe's three-cell
+    // sheet would be a fifth the width of gomoku's fifteen-cell one; this
+    // pins the widths to the same rough range instead.
+    struct Case {
+        GameMode mode;
+        uint8 cells;
+    };
+    constexpr Case kCases[] = {
+        {GameMode::TicTacToe, 3},
+        {GameMode::Gomoku9, 9},
+        {GameMode::Gomoku15, 15},
+    };
+
+    for (const Case& test : kCases) {
+        const MatchConfig config = DefaultMatchConfig(test.mode);
+        const float widest = (24.0f + config.paperSizeMax * 8.0f) * test.cells;
+        const float narrowest = (24.0f + config.paperSizeMin * 8.0f) * test.cells;
+
+        // Big enough to aim at, and small enough to leave field to fly across.
+        EXPECT_GE(narrowest, 150.0f) << ToString(test.mode) << " sheet too small";
+        EXPECT_LE(widest, kFieldWidth * 0.5f) << ToString(test.mode) << " sheet too wide";
+    }
+}
+
+TEST(MatchConfig, SingleShotModesLoseTheItemsThatNeedTwo) {
+    // Tic-tac-toe defaults to one shot a wave, which excludes the pan and the
+    // speed loader. Asserted rather than left implicit: it is a real gameplay
+    // consequence of the ammo default, not an accident.
+    const MatchConfig config = DefaultMatchConfig(GameMode::TicTacToe);
+    ASSERT_EQ(config.ammoPerWave, 1);
+    EXPECT_EQ(config.itemMask & ItemBit(ItemKind::FryingPan), 0u);
+    EXPECT_EQ(config.itemMask & ItemBit(ItemKind::SpeedLoader), 0u);
+    EXPECT_NE(config.itemMask & ItemBit(ItemKind::Grenade), 0u);
+
+    // Both gomoku modes keep everything.
+    for (const GameMode mode : {GameMode::Gomoku9, GameMode::Gomoku15}) {
+        const MatchConfig gomoku = DefaultMatchConfig(mode);
+        EXPECT_EQ(gomoku.itemMask, kAllItemsMask) << ToString(mode);
+    }
+}
+
 TEST(Items, PoolNarrowsToWhatTheAmmoRuleAllows) {
     // With a single shot each, losing a wave to a frying pan is the whole
     // round, and there is nothing to reload.

@@ -167,8 +167,10 @@ export class Reader {
 // Shared structures — field order matches the C++ Serialize methods exactly
 // ---------------------------------------------------------------------------
 
+// botDifficulty is 0 for a person and 1..5 for a bot.
 export const readMember = (r) => ({
   sessionId: r.u64(), nickname: r.str(), slot: r.u8(), isHost: r.bool(), isReady: r.bool(),
+  botDifficulty: r.u8(),
 });
 
 export const readRoomSummary = (r) => ({
